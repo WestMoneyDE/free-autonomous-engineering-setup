@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema#state-machine-definition",
+  "name": "canonical-work-order-state-machine",
+  "version": "1.0.0",
+  "description": "The single canonical work-order state machine for this repository. Derived from docs/HERMES-SUPERVISOR.md, templates and the upstream design repos; every document, template and runtime module MUST use exactly these state names.",
+  "states": {
+    "PLANNED": { "description": "Work order drafted; not yet complete enough to dispatch.", "terminal": false },
+    "READY": { "description": "Work order complete and dispatchable to an implementation worker.", "terminal": false },
+    "IN_PROGRESS": { "description": "An implementation worker holds the lease and is executing.", "terminal": false },
+    "READY_FOR_REVIEW": { "description": "Implementation returned with evidence; independent review required.", "terminal": false },
+    "CHANGES_REQUESTED": { "description": "Reviewer returned bounded findings to implementation.", "terminal": false },
+    "BLOCKED": { "description": "A persisted blocker prevents progress; no automatic looping.", "terminal": false },
+    "WAIT_PROVIDER": { "description": "Provider/routing failure; fail-closed wait with normalized metadata.", "terminal": false },
+    "FOUNDER_REQUIRED": { "description": "Consequential action pending exact human authority.", "terminal": false },
+    "APPROVED_FOR_EXTERNAL_ACTION": { "description": "Exact one-shot approval exists; execute the approved action once.", "terminal": false },
+    "DONE": { "description": "Acceptance criteria satisfied with fresh evidence; work order closed.", "terminal": true },
+    "FAIL": { "description": "Exact failure persisted; no automatic rerun.", "terminal": true },
+    "CANCELLED": { "description": "Explicitly cancelled; no automatic rerun.", "terminal": true }
+  },
+  "workerClasses": {
+    "READY": "builder",
+    "CHANGES_REQUESTED": "builder",
+    "READY_FOR_REVIEW": "reviewer"
+  },
+  "transitions": [
+    { "from": "PLANNED", "to": "READY", "event": "work_order_completed", "guards": ["work_order_valid"], "requiredEvidence": [], "authority": "supervisor" },
+    { "from": "PLANNED", "to": "CANCELLED", "event": "cancel", "guards": [], "requiredEvidence": ["cancellation_reason"], "authority": "supervisor" },
+    { "from": "READY", "to": "IN_PROGRESS", "event": "dispatch_builder", "guards": ["lease_acquired", "work_order_hash_matches", "budget_policy_valid"], "requiredEvidence": [], "authority": "supervisor" },
+    { "from": "READY", "to": "BLOCKED", "event": "block", "guards": [], "requiredEvidence": ["blocker_record"], "authority": "supervisor" },
+    { "from": "READY", "to": "CANCELLED", "event": "cancel", "guards": [], "requiredEvidence": ["cancellation_reason"], "authority": "supervisor" },
+    { "from": "IN_PROGRESS", "to": "READY_FOR_REVIEW", "event": "worker_returned", "guards": ["worker_result_valid"], "requiredEvidence": ["worker_result", "verification_evidence"], "authority": "supervisor" },
+    { "from": "IN_PROGRESS", "to": "BLOCKED", "event": "block", "guards": [], "requiredEvidence": ["blocker_record"], "authority": "supervisor" },
+    { "from": "IN_PROGRESS", "to": "WAIT_PROVIDER", "event": "provider_failure", "guards": [], "requiredEvidence": ["provider_wait_record"], "authority": "supervisor" },
+    { "from": "IN_PROGRESS", "to": "FAIL", "event": "fail", "guards": [], "requiredEvidence": ["failure_record"], "authority": "supervisor" },
+    { "from": "IN_PROGRESS", "to": "CANCELLED", "event": "cancel", "guards": [], "requiredEvidence": ["cancellation_reason"], "authority": "supervisor" },
+    { "from": "WAIT_PROVIDER", "to": "READY", "event": "provider_recovered", "guards": ["wait_resolved", "attempts_within_bound"], "requiredEvidence": [], "authority": "supervisor" },
+    { "from": "WAIT_PROVIDER", "to": "BLOCKED", "event": "block", "guards": [], "requiredEvidence": ["blocker_record"], "authority": "supervisor" },
+    { "from": "WAIT_PROVIDER", "to": "FAIL", "event": "fail", "guards": [], "requiredEvidence": ["failure_record"], "authority": "supervisor" },
+    { "from": "READY_FOR_REVIEW", "to": "CHANGES_REQUESTED", "event": "review_changes_requested", "guards": ["reviewer_is_not_builder"], "requiredEvidence": ["review_verdict"], "authority": "supervisor" },
+    { "from": "READY_FOR_REVIEW", "to": "FOUNDER_REQUIRED", "event": "escalate_to_human", "guards": ["reviewer_is_not_builder"], "requiredEvidence": ["review_verdict"], "authority": "supervisor" },
+    { "from": "READY_FOR_REVIEW", "to": "DONE", "event": "review_passed", "guards": ["reviewer_is_not_builder", "no_external_action_required", "evidence_fresh"], "requiredEvidence": ["review_verdict", "verification_evidence"], "authority": "supervisor" },
+    { "from": "READY_FOR_REVIEW", "to": "BLOCKED", "event": "block", "guards": [], "requiredEvidence": ["blocker_record"], "authority": "supervisor" },
+    { "from": "CHANGES_REQUESTED", "to": "IN_PROGRESS", "event": "dispatch_builder", "guards": ["lease_acquired", "work_order_hash_matches", "attempts_within_bound"], "requiredEvidence": [], "authority": "supervisor" },
+    { "from": "CHANGES_REQUESTED", "to": "BLOCKED", "event": "block", "guards": [], "requiredEvidence": ["blocker_record"], "authority": "supervisor" },
+    { "from": "CHANGES_REQUESTED", "to": "FAIL", "event": "fail", "guards": [], "requiredEvidence": ["failure_record"], "authority": "supervisor" },
+    { "from": "CHANGES_REQUESTED", "to": "CANCELLED", "event": "cancel", "guards": [], "requiredEvidence": ["cancellation_reason"], "authority": "supervisor" },
+    { "from": "BLOCKED", "to": "READY", "event": "unblock", "guards": ["blocker_resolution_recorded"], "requiredEvidence": ["blocker_resolution"], "authority": "supervisor" },
+    { "from": "BLOCKED", "to": "CANCELLED", "event": "cancel", "guards": [], "requiredEvidence": ["cancellation_reason"], "authority": "supervisor" },
+    { "from": "BLOCKED", "to": "FAIL", "event": "fail", "guards": [], "requiredEvidence": ["failure_record"], "authority": "supervisor" },
+    { "from": "FOUNDER_REQUIRED", "to": "APPROVED_FOR_EXTERNAL_ACTION", "event": "human_approved", "guards": ["approval_valid_and_bound"], "requiredEvidence": ["approval_decision"], "authority": "human" },
+    { "from": "FOUNDER_REQUIRED", "to": "CANCELLED", "event": "human_rejected", "guards": [], "requiredEvidence": ["approval_decision"], "authority": "human" },
+    { "from": "FOUNDER_REQUIRED", "to": "BLOCKED", "event": "block", "guards": [], "requiredEvidence": ["blocker_record"], "authority": "supervisor" },
+    { "from": "APPROVED_FOR_EXTERNAL_ACTION", "to": "DONE", "event": "external_action_succeeded", "guards": ["approval_consumed_exactly_once"], "requiredEvidence": ["execution_result"], "authority": "supervisor" },
+    { "from": "APPROVED_FOR_EXTERNAL_ACTION", "to": "FAIL", "event": "external_action_failed", "guards": [], "requiredEvidence": ["execution_result"], "authority": "supervisor" },
+    { "from": "APPROVED_FOR_EXTERNAL_ACTION", "to": "BLOCKED", "event": "outcome_unknown", "guards": [], "requiredEvidence": ["execution_result"], "authority": "supervisor" }
+  ],
+  "terminalPolicy": "Terminal states (DONE, FAIL, CANCELLED) have no outgoing transitions. Reopening requires a NEW work order with new identity; a terminal work order can never be silently reactivated.",
+  "notes": [
+    "Worker returns carry a transition PROPOSAL; only the supervisor validates and persists transitions.",
+    "APPROVED_FOR_EXTERNAL_ACTION -> BLOCKED with an UNKNOWN execution result models OUTCOME_UNKNOWN != NOT_EXECUTED: the occurrence reservation is held until reconciled.",
+    "WAIT_PROVIDER resume is bounded; exhausting the bound requires block/fail, never silent retry."
+  ]
+}

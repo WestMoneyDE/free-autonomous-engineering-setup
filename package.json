@@ -1,12 +1,14 @@
 {
   "name": "free-autonomous-engineering-setup",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "Free-preferred autonomous coding control plane with DeepSeek Harness, OmniRoute and durable evidence-driven engineering state.",
+  "description": "Free-preferred autonomous coding control plane: executable Hermes Supervisor Runtime, canonical state machine, memory fabric with authority provenance, deterministic effect gate, DeepSeek Harness + OmniRoute integration and durable evidence-driven engineering state.",
   "type": "module",
   "scripts": {
-    "test": "node scripts/verify-repo.mjs",
-    "verify": "node scripts/verify-repo.mjs"
+    "test": "node --test && node scripts/verify-repo.mjs",
+    "verify": "node scripts/verify-repo.mjs",
+    "demo": "node examples/demo-project/run-demo.mjs",
+    "export-schemas": "node scripts/export-schemas.mjs"
   },
   "engines": {
     "node": ">=20"

@@ -6,6 +6,8 @@
 
 > A local-first, free-preferred autonomous coding control plane built around **Hermes Supervisor + DeepSeek Harness + OmniRoute + GitHub-backed durable engineering state**.
 
+**Status: the control plane is executable, not only documented.** This repository ships a tested, vendor-neutral Hermes Supervisor Runtime (state machine, leases, dispatch guards, event-sourced recovery), a memory fabric with authority provenance and revocation, a deterministic effect gate with one-shot human approvals, and the DSH/OmniRoute integration contract. Every capability claim is bounded by its tests — see [`CAPABILITIES.md`](CAPABILITIES.md); threats and honest limits live in [`docs/THREAT-MODEL.md`](docs/THREAT-MODEL.md).
+
 This repository combines the strongest reusable engineering patterns from [`WestMoneyDE/ai-engineering-stack`](https://github.com/WestMoneyDE/ai-engineering-stack) and [`WestMoneyDE/LOGOS-1`](https://github.com/WestMoneyDE/LOGOS-1) with Hermes as the supervisory control plane, [`deepseek-ai/deepseek-harness`](https://github.com/deepseek-ai/deepseek-harness) as the coding runtime and [`diegosouzapw/OmniRoute`](https://github.com/diegosouzapw/OmniRoute) as the model gateway.
 
 The objective is not one magic free model. It is a **vendor-neutral autonomous engineering system** that decomposes work, dispatches workers, routes inference, preserves project state outside chat, verifies changes, separates review from implementation and escalates consequential actions to a human.
@@ -45,7 +47,7 @@ flowchart LR
 
 ## Hermes supervisor state machine
 
-Hermes should supervise compact durable project state instead of repeatedly re-reading entire repositories.
+Hermes should supervise compact durable project state instead of repeatedly re-reading entire repositories. The canonical machine (12 states including `PLANNED`) is machine-readable in [`spec/state-machine.json`](spec/state-machine.json) and enforced by [`src/supervisor/state-machine.mjs`](src/supervisor/state-machine.mjs) — invalid transitions, missing evidence and terminal-state exits fail closed in code.
 
 Recommended state interface:
 
@@ -120,13 +122,14 @@ Requirements: Git, Node.js 20+, npm/npx.
 ```bash
 git clone https://github.com/WestMoneyDE/free-autonomous-engineering-setup.git
 cd free-autonomous-engineering-setup
-npm test
+npm test        # invariant test suites + repository contract
+npm run demo    # full supervised loop: PLANNED → … → DONE, locally, model-free
 ```
 
 Start OmniRoute:
 
 ```bash
-npx omniroute
+npx omniroute@3.8.49        # pin the version; bare 'npx omniroute' drifts
 ```
 
 Default local API:
@@ -138,7 +141,7 @@ http://localhost:20128/v1
 Start DeepSeek Harness:
 
 ```bash
-npx @deepseek-ai/dsh web
+npx @deepseek-ai/dsh@0.1.0-rc.7 web
 ```
 
 Default local UI:
@@ -179,7 +182,7 @@ CHECKPOINT + COMPLETE
 
 ## Memory and authority
 
-The repository is durable project truth. Runtime memory may accelerate retrieval, but it cannot become the sole copy of decisions or mint authority.
+The repository is durable project truth. Runtime memory may accelerate retrieval, but it cannot become the sole copy of decisions or mint authority. This is enforced, not aspirational: the memory fabric (`src/memory/`) preserves source AND authority provenance through consolidation, propagates revocation to derived procedures, and rejects grant/credential/scope/token records outright; approvals live in a separate assurance store (`src/policy/approval.mjs`) that only human-class actors can write (tests: `tests/memory.test.mjs`, `tests/approval.test.mjs`).
 
 ```text
 .state/
@@ -200,6 +203,10 @@ The repository is durable project truth. Runtime memory may accelerate retrieval
 **ASK:** push/merge, deployment, production writes, external messages, payments, account/infrastructure mutation, destructive operations, material scope expansion.
 
 **DENY BY DEFAULT:** secret exfiltration, permission bypass, self-granted authority, disabling required safety controls, unrestricted persistence/self-copying, forceful history destruction without explicit authorization.
+
+## What is implemented vs. specified
+
+`npm test` runs 100+ tests that attack the invariants directly (terminal-state reopening, duplicate dispatch, stale leases, approval replay, digest tampering, authority minting through memory, revoked derived skills, unknown effects, `NOT_RUN != PASS`, …). The live DSH↔OmniRoute wiring and harness adapters are configuration validated against upstream docs of 2026-08-20, not CI-executed — [`CAPABILITIES.md`](CAPABILITIES.md) keeps the exact per-capability status, and nothing there is rated above its tests.
 
 ## License
 

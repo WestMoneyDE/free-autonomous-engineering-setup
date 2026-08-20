@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { EventStore } from '../src/state/event-store.mjs';
+const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'faes-idem-'));
+test('repeated command with the same idempotency key does not duplicate the effect', () => { const store = new EventStore(tmp()); const first = store.append({ type: 'external_execution', actor: 'executor', idempotency_key: 'exec:abc', payload: 1 }); const replay = store.append({ type: 'external_execution', actor: 'executor', idempotency_key: 'exec:abc', payload: 2 }); assert.equal(first.replayed, false); assert.equal(replay.replayed, true); assert.equal(replay.seq, first.seq); assert.equal(replay.payload, 1); assert.equal(store.all().filter((e) => e.type === 'external_execution').length, 1); });
+test('idempotent replay survives restart (result replay from durable log)', () => { const dir = tmp(); const s1 = new EventStore(dir); s1.append({ type: 'x', actor: 'a', idempotency_key: 'k1', value: 42 }); const s2 = new EventStore(dir); const replay = s2.append({ type: 'x', actor: 'a', idempotency_key: 'k1', value: 99 }); assert.equal(replay.replayed, true); assert.equal(replay.value, 42); });
+test('distinct idempotency keys record distinct events', () => { const store = new EventStore(tmp()); store.append({ type: 'x', actor: 'a', idempotency_key: 'k1' }); store.append({ type: 'x', actor: 'a', idempotency_key: 'k2' }); assert.equal(store.all().filter((e) => e.type === 'x').length, 2); });

@@ -39,18 +39,19 @@ echo "  DSH provider template: config/dsh-omniroute.settings.example.yaml"
 
 if [[ "$APPLY" == "true" ]]; then
   echo
-echo "[APPLY] Installing OmniRoute globally through npm..."
-  npm install -g omniroute
+echo "[APPLY] Installing OmniRoute globally through npm (version-pinned)..."
+  npm install -g omniroute@3.8.49
   omniroute --version
+  echo "[NOTE] This installed a machine-global package. Reverse with: npm uninstall -g omniroute"
 else
   echo
 echo "Dry run only. No package was installed and no settings were modified."
-  echo "Run '$0 --apply' to install OmniRoute globally, or use 'npx omniroute' without installation."
+  echo "Run '$0 --apply' to install OmniRoute globally (pinned), or prefer 'npx omniroute@3.8.49' without installation."
 fi
 
 echo
 echo "Next terminals:"
-echo "  1) npx omniroute"
-echo "  2) npx @deepseek-ai/dsh web"
+echo "  1) npx omniroute@3.8.49"
+echo "  2) npx @deepseek-ai/dsh@0.1.0-rc.7 web"
 echo
 echo "Then add OmniRoute in DSH Settings -> Models as documented in docs/INSTALLATION.md."

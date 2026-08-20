@@ -1,6 +1,8 @@
 # Notices and provenance
 
-This repository is an integration and operating-model project. It does not vendor the source code of the upstream projects listed below.
+This repository is an integration and operating-model project WITH an original, MIT-licensed runtime implementation (`src/`, `spec/`, `tests/`). It does not vendor the source code of the upstream projects listed below.
+
+**Hermes non-affiliation:** the "Hermes Supervisor Runtime" in this repository is an original implementation written for this project. There is no publicly installable upstream "Hermes" package; the name is used here for architectural continuity with the design described in `WestMoneyDE/ai-engineering-stack`, whose author describes Hermes as a personal, non-installable control-plane design. No upstream Hermes code, product or endorsement is claimed.
 
 ## Design sources
 

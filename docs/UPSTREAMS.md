@@ -8,7 +8,7 @@ Repository: https://github.com/deepseek-ai/deepseek-harness
 
 Validated behavior on 2026-08-20:
 
-- npm launch: `npx @deepseek-ai/dsh web`;
+- npm launch (pin it): `npx @deepseek-ai/dsh@0.1.0-rc.7 web`; bare `npx @deepseek-ai/dsh` installs *latest*, which for a developer-preview package is an integration risk;
 - local Web UI default: `http://127.0.0.1:3080`;
 - plugin-oriented architecture;
 - generic `dsh-llm-pi-ai` multi-provider adapter can declare an OpenAI-compatible gateway with `api`, `baseURL`, credential reference and model list;
@@ -23,8 +23,9 @@ Repository: https://github.com/diegosouzapw/OmniRoute
 
 Validated against the public `release/v3.8.50` documentation available on 2026-08-20:
 
-- npm/global install: `npm install -g omniroute`;
-- no-install launch: `npx omniroute`;
+- npm/global install (pin it): `npm install -g omniroute@3.8.49`;
+- no-install launch (pin it): `npx omniroute@3.8.49`;
+- note: the published npm version at validation time was **3.8.49** while the documentation validated was the `release/v3.8.50` branch — bare `npx omniroute` installs *latest* and can drift ahead of what this repo validated; always pin;
 - local OpenAI-compatible endpoint: `http://localhost:20128/v1`;
 - auto routing aliases include `auto/coding`, `auto/coding:fast`, `auto/coding:cheap`, `auto/coding:reliable`, `auto/coding:free` and `auto/reasoning:pro`;
 - category/tier filtering is fail-open if no matching candidate exists;

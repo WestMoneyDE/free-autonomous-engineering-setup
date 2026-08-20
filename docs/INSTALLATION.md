@@ -7,14 +7,15 @@ This setup has three runtime layers: **Hermes Supervisor → DeepSeek Harness �
 - Git
 - Node.js 20+
 - npm / npx
-- a working Hermes Agent installation for the supervisor layer
+- no additional supervisor install: the Hermes Supervisor Runtime ships in this repository (`src/supervisor/`)
 
 Clone and validate:
 
 ```bash
 git clone https://github.com/WestMoneyDE/free-autonomous-engineering-setup.git
 cd free-autonomous-engineering-setup
-npm test
+npm test        # unit + invariant suites, then the repository contract check
+npm run demo    # full supervised loop, locally, model-free
 ```
 
 ## 1. Start OmniRoute
@@ -22,8 +23,10 @@ npm test
 No global install required:
 
 ```bash
-npx omniroute
+npx omniroute@3.8.49
 ```
+
+(Pin the version; bare `npx omniroute` installs *latest* and may drift ahead of what this repository validated.)
 
 Local OpenAI-compatible endpoint:
 
@@ -34,7 +37,7 @@ http://localhost:20128/v1
 Optional global install:
 
 ```bash
-npm install -g omniroute
+npm install -g omniroute@3.8.49
 omniroute setup
 omniroute
 ```
@@ -42,7 +45,7 @@ omniroute
 ## 2. Start DeepSeek Harness
 
 ```bash
-npx @deepseek-ai/dsh web
+npx @deepseek-ai/dsh@0.1.0-rc.7 web
 ```
 
 Local UI:
@@ -61,15 +64,27 @@ In DSH open **Settings → Models → Add a custom provider**:
 Provider ID: omniroute
 Base URL:    http://127.0.0.1:20128/v1
 Protocol:    openai-completions
-API key:     dummy-key          # local quickstart only
+API key:     dummy-key          # local quickstart only — see warning below
 Model:       auto/coding
 ```
 
 Or merge [`../config/dsh-omniroute.settings.example.yaml`](../config/dsh-omniroute.settings.example.yaml) into DSH settings.
 
+**Security warning:** the local quickstart endpoint accepts ANY non-empty
+bearer value — "dummy-key" is not authentication. Keep OmniRoute bound to
+loopback. Never expose the endpoint beyond 127.0.0.1 with a dummy key
+(docs/THREAT-MODEL.md §18).
+
 ## 4. Prepare each project for Hermes supervision
 
-Hermes should consume a compact durable interface, for example:
+Scaffold the durable layout (dry-run first; never overwrites; idempotent):
+
+```bash
+node scripts/init-project.mjs --target ../my-project           # dry run
+node scripts/init-project.mjs --target ../my-project --apply
+```
+
+This creates the compact durable interface the supervisor consumes:
 
 ```text
 brain/STATE.json

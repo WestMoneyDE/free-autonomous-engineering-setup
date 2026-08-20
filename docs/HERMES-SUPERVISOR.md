@@ -51,8 +51,11 @@ Git-backed state is authoritative; chat history and runtime-local memory are onl
 
 ## Canonical state routing
 
+The machine-readable definition lives in `spec/state-machine.json` and is enforced by `src/supervisor/state-machine.mjs`. Every state below is canonical; templates and docs must not invent alternatives.
+
 | State | Hermes action |
 |---|---|
+| `PLANNED` | complete/bound the work order; not yet dispatchable |
 | `READY` | dispatch bounded implementation task to DeepSeek Harness |
 | `IN_PROGRESS` | observe; do not duplicate-dispatch |
 | `READY_FOR_REVIEW` | dispatch independent review worker/session |
@@ -63,6 +66,26 @@ Git-backed state is authoritative; chat history and runtime-local memory are onl
 | `APPROVED_FOR_EXTERNAL_ACTION` | execute only the exact approved action, once |
 | `DONE` | persist evidence and close the work order |
 | `FAIL` / `CANCELLED` | persist exact outcome; do not auto-rerun |
+
+## Runtime implementation
+
+This repository ships an executable, vendor-neutral **Hermes Supervisor
+Runtime** (no external Hermes upstream exists; see `NOTICE.md`):
+
+```text
+src/supervisor/state-machine.mjs     transitions, guards, evidence, authority
+src/supervisor/lease-manager.mjs     leases, TTL, fencing tokens, stale takeover
+src/supervisor/dispatcher.mjs        dispatch guards, duplicate-dispatch denial
+src/supervisor/provider-wait.mjs     normalized waits, bounded resume
+src/supervisor/project-registry.mjs  event-sourced project state + recovery
+src/state/event-store.mjs            append-only log, idempotency, snapshots
+```
+
+Run the full supervised loop locally: `npm run demo`. Inspect state with
+`node src/cli.mjs state <projectRoot>` and verify crash recovery with
+`node src/cli.mjs verify-recovery <projectRoot>`. The runtime validates and
+persists; spawning actual DSH worker processes is operator glue by design
+(see `CAPABILITIES.md`).
 
 ## Duplicate-run protection
 

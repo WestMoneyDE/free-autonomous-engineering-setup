@@ -44,6 +44,12 @@ Approvals, grants, consumed one-shot tokens, policy versions and reconciliation 
 
 Treat the names as a logical model. A production system may use a database or object store, but the same ownership boundaries should survive.
 
+**Versioned vs local:** everything under `.state/` is Git-versioned project
+truth EXCEPT `.state/local/`, which is machine-local scratch space (ignored by
+`.gitignore`, self-ignoring via its own `.gitignore`). Evidence that matters
+belongs in `.state/evidence/`, never in ignored `logs/`/`tmp/` directories.
+`scripts/init-project.mjs` scaffolds this layout (dry-run by default).
+
 ## Durable memory record
 
 A useful record carries at least:
@@ -100,6 +106,21 @@ Any consequential external action influenced by memory re-enters the authority g
 ## Conflict and staleness
 
 Never silently overwrite contradictory records. Use `supersedes` for intentional replacement and `conflicts_with` when evidence remains unresolved. Retrieval should qualify stale data instead of presenting it as current truth.
+
+## Implementation
+
+This layout is implemented, not only described:
+
+```text
+src/memory/store.mjs      append/fetch/query/supersede/conflict/consolidate/
+                          retention/recovery; authority provenance distinct
+                          from source provenance; derived-procedure lineage;
+                          revocation propagation; assurance kinds rejected
+src/memory/retrieval.mjs  deterministic BM25 with provenance qualifiers
+src/policy/approval.mjs   SEPARATE assurance store (approvals, consumption)
+```
+
+Every test listed below exists in `tests/memory.test.mjs` and runs in CI.
 
 ## Tests for a real memory implementation
 

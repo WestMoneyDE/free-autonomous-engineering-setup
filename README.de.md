@@ -2,12 +2,15 @@
 
 [English](README.md) · [Installation](docs/INSTALLATION.md) · [Architektur](docs/ARCHITECTURE.md) · [Routing](docs/ROUTING.md) · [Kosten](docs/COSTS.md)
 
-Dieses Repository baut eine **lokale, free-preferred Coding-Control-Plane** aus vier klar getrennten Ebenen:
+Dieses Repository baut eine **lokale, free-preferred Coding-Control-Plane** aus fünf klar getrennten Ebenen:
 
-1. **DeepSeek Harness** führt den agentischen Coding-Loop aus.
-2. **OmniRoute** entscheidet über Modell/Provider, Fallback, Kosten-, Quota-, Health- und Latenzsignale.
-3. **Git + Repository-State** speichern Work Orders, Entscheidungen, Evidence und Session-Checkpoints dauerhaft.
-4. **Human Authority** bleibt für externe, destruktive, Production-, Finanz-, Rechts- und andere schwer reversible Aktionen zuständig.
+1. **Hermes Supervisor Runtime** (in diesem Repository implementiert, `src/supervisor/`) besitzt State Machine, Work-Order-Dispatch, Leases/Duplikatschutz, Eskalation und Recovery.
+2. **DeepSeek Harness** führt den agentischen Coding-Loop aus.
+3. **OmniRoute** entscheidet über Modell/Provider, Fallback, Kosten-, Quota-, Health- und Latenzsignale.
+4. **Git + Repository-State** speichern Work Orders, Entscheidungen, Evidence und Session-Checkpoints dauerhaft.
+5. **Human Authority** bleibt für externe, destruktive, Production-, Finanz-, Rechts- und andere schwer reversible Aktionen zuständig.
+
+**Status:** Die Control Plane ist ausführbar, nicht nur dokumentiert — State Machine, Memory Fabric mit Authority-Provenance, deterministischer Effect Gate, One-Shot-Approvals und Evidence Ledger sind implementiert und getestet. Der exakte Stand jeder Capability steht in [`CAPABILITIES.md`](CAPABILITIES.md) — keine Capability wird höher eingestuft, als ihre Tests belegen. Bedrohungsmodell: [`docs/THREAT-MODEL.md`](docs/THREAT-MODEL.md).
 
 Die stärksten generalisierbaren Muster aus `WestMoneyDE/ai-engineering-stack` und `WestMoneyDE/LOGOS-1` werden hier als öffentlich wiederverwendbares Engineering-Setup zusammengeführt: evidence-driven Loop Engineering, unabhängiger Review, Fail-Closed-Verhalten, Memory-Provenance, Authority-Firewall, One-Shot-External-Execution und konsistente Repo-Checkpoints.
 
@@ -16,14 +19,15 @@ Die stärksten generalisierbaren Muster aus `WestMoneyDE/ai-engineering-stack` u
 ```bash
 git clone https://github.com/WestMoneyDE/free-autonomous-engineering-setup.git
 cd free-autonomous-engineering-setup
-npm test
-bash scripts/bootstrap.sh
+npm test          # Invarianten-Testsuiten + Repository-Contract
+npm run demo      # kompletter Loop PLANNED → … → DONE, lokal, ohne Modell
+bash scripts/bootstrap.sh   # Dry-Run: prüft nur Voraussetzungen, schreibt nichts
 ```
 
 OmniRoute starten:
 
 ```bash
-npx omniroute
+npx omniroute@3.8.49
 ```
 
 Endpoint:
@@ -35,7 +39,7 @@ http://localhost:20128/v1
 DeepSeek Harness in einem zweiten Terminal starten:
 
 ```bash
-npx @deepseek-ai/dsh web
+npx @deepseek-ai/dsh@0.1.0-rc.7 web
 ```
 
 Web UI:
@@ -50,7 +54,9 @@ Danach in DSH unter **Settings → Models → Add a custom provider**:
 Provider ID: omniroute
 Base URL:    http://127.0.0.1:20128/v1
 Protocol:    openai-completions
-API key:     dummy-key       (nur lokales Quickstart)
+API key:     dummy-key       (nur lokales Quickstart — jeder nicht-leere
+                             Wert wird akzeptiert, d. h. KEINE Authentifizierung;
+                             Endpoint nur auf 127.0.0.1 binden)
 Model:       auto/coding
 ```
 

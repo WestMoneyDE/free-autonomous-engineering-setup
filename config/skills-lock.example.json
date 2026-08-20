@@ -1,0 +1,24 @@
+{
+  "version": 2,
+  "_note": "Skill references are metadata only; no third-party skill content is vendored here. 'ref' MUST be a commit SHA (a branch name is not a pin). Replace the placeholder refs below with the commit you actually reviewed before enabling a skill. 'sha256' optionally pins the exact file content.",
+  "skills": {
+    "supabase": {
+      "source": "supabase/agent-skills",
+      "skillPath": "skills/supabase/SKILL.md",
+      "ref": "0000000000000000000000000000000000000000",
+      "scope": ["supabase/**", "db/**"]
+    },
+    "react-best-practices": {
+      "source": "vercel-labs/agent-skills",
+      "skillPath": "skills/react-best-practices/SKILL.md",
+      "ref": "0000000000000000000000000000000000000000",
+      "scope": ["src/**/*.tsx", "src/**/*.jsx"]
+    },
+    "code-review-security": {
+      "source": "OWASP/secure-agent-playbook",
+      "skillPath": "plugins/code-security-skills/skills/code-review-security/SKILL.md",
+      "ref": "0000000000000000000000000000000000000000",
+      "scope": ["**"]
+    }
+  }
+}

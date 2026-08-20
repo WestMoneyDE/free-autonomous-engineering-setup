@@ -69,3 +69,15 @@ ONE-SHOT EXTERNAL ACTION
   ↓
 CHECKPOINT + DONE
 ```
+
+## Scope note: local core vs optional team/server profile
+
+This repository's runtime is a LOCAL-FIRST, single-operator core. Capabilities
+from the AI Engineering Stack that only matter for shared/server deployments —
+multi-tenancy, PostgreSQL Row Level Security, full RBAC, mobile approval
+transports, hosted evals — are deliberately **not** part of this core. They are
+documented as an optional team/server profile: if you deploy the supervisor as
+a shared service, add a real database with RLS-backed tenancy, a real identity
+provider, a CAS-capable lease/approval store, and an authenticated approval
+transport. The ownership boundaries implemented here (assurance separate from
+memory, gate separate from executor) must survive that migration unchanged.

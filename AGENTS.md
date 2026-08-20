@@ -30,6 +30,12 @@ Hermes is not the primary developer. DSH is not the supervisor. OmniRoute is not
 
 ## Supervisor state routing
 
+The canonical state machine is machine-readable in `spec/state-machine.json`
+and enforced at runtime by `src/supervisor/state-machine.mjs` (fail-closed:
+invalid transitions, missing evidence, missing authority and terminal-state
+exits are rejected in code, not by convention). The routing below is the
+worker-class view of that machine; `PLANNED` precedes `READY`.
+
 ```text
 READY              → implementation worker
 READY_FOR_REVIEW   → independent reviewer

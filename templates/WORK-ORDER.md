@@ -5,7 +5,7 @@
 - ID: `<unique-id>`
 - Created: `<ISO-8601>`
 - Requested by: `<actor/source>`
-- Status: `PLANNED | ACTIVE | BLOCKED | REVIEW | COMPLETE | STOPPED`
+- Status: `PLANNED | READY | IN_PROGRESS | READY_FOR_REVIEW | CHANGES_REQUESTED | BLOCKED | WAIT_PROVIDER | FOUNDER_REQUIRED | APPROVED_FOR_EXTERNAL_ACTION | DONE | FAIL | CANCELLED` (canonical machine: `spec/state-machine.json`)
 
 ## Objective
 

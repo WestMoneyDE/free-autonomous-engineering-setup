@@ -101,6 +101,28 @@ CHECKPOINT / COMPLETE
 - Provider failure is `WAIT_PROVIDER`/`FAIL`, never fabricated completion.
 - Consequential external execution is one-shot by default.
 
+## Implementation map
+
+| Plane | Module | Tests |
+|---|---|---|
+| Supervision | `src/supervisor/*` | `tests/state-machine.test.mjs`, `tests/supervisor.test.mjs` |
+| Durable state | `src/state/event-store.mjs` | `tests/supervisor.test.mjs`, `tests/idempotency.test.mjs` |
+| Memory fabric | `src/memory/*` | `tests/memory.test.mjs` |
+| Authority / assurance | `src/policy/approval.mjs` | `tests/approval.test.mjs` |
+| Effect boundary | `src/policy/effect-registry.mjs`, `effect-gate.mjs`, `executor.mjs` | `tests/effect-gate.test.mjs` |
+| Policy engine | `src/policy/permissions.mjs` | `tests/security.test.mjs` |
+| Workers | `src/workers/contracts.mjs` | `tests/workers.test.mjs` |
+| Evidence | `src/evidence/*` | `tests/evidence.test.mjs` |
+| Routing | `src/routing/omniroute.mjs` | `tests/provider.test.mjs` |
+
+The effect boundary implements: worker → canonical `EffectProposal` →
+deterministic gate (`ALLOW/REPAIR/DEFER/DENY/FALLBACK`, unknown effects fail
+closed, agent claims only tighten) → single executor (one-shot, digest-bound,
+`UNKNOWN` blocks the scope) → world. Direct worker → world execution of
+consequential actions is out of contract and defended in depth (gate nonces,
+command classification, harness adapters); see `docs/THREAT-MODEL.md` §15 for
+the honest limits of in-process mediation.
+
 ## Why the separation matters
 
 - Hermes can evolve without changing worker/model internals.
