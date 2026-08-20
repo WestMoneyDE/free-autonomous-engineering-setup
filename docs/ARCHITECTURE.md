@@ -2,17 +2,16 @@
 
 ## Design objective
 
-Build an autonomous coding environment where the **agent runtime, model routing, project truth, verification and authority are separate control boundaries**.
-
-The separation is intentional: an LLM can be capable without becoming authoritative; a memory system can be useful without becoming a permission system; a router can optimize cost without being allowed to silently violate a budget policy.
+Build an autonomous engineering environment where **supervision, coding execution, inference routing, project truth, verification and authority are separate control boundaries**.
 
 ## Control-plane view
 
 ```mermaid
 flowchart TD
-    I["Intent / issue"] --> WO["Bounded work order"]
-    ST["Versioned state + evidence"] <--> DSH["DeepSeek Harness"]
-    WO --> DSH
+    I["Intent / issue"] --> H["Hermes Supervisor"]
+    ST["Versioned state + evidence"] <--> H
+    H --> WO["Bounded work order"]
+    WO --> DSH["DeepSeek Harness"]
     SK["Scoped skills"] --> DSH
     DSH --> OR["OmniRoute gateway"]
     OR --> M1["Free / cheap / fast candidates"]
@@ -20,8 +19,8 @@ flowchart TD
     DSH --> FS["Filesystem / Shell / Git"]
     FS --> Q["Deterministic quality gates"]
     Q --> REV["Independent review"]
-    REV -->|changes| DSH
-    REV -->|pass| A{"Authority required?"}
+    REV --> H
+    H --> A{"Authority required?"}
     A -->|no| DONE["Completion + evidence"]
     A -->|yes| HUMAN["Human approval"]
     HUMAN -->|approved| DONE
@@ -30,26 +29,38 @@ flowchart TD
 
 ## Responsibility boundaries
 
+### Hermes Supervisor — supervision plane
+
+Hermes is the external supervisor. It owns work-order orchestration, compact project-state reads, state transitions, worker dispatch, duplicate-run locks, escalation and human-gate routing. It should not be the primary code writer and should not contain a competing provider router.
+
+Hermes primarily consumes a compact durable interface such as `brain/STATE.json`, `CURRENT-WORK-ORDER.md` and versioned session/evidence records. It should avoid reconstructing the project from full-repository reads on every cycle.
+
+Recommended transitions:
+
+```text
+READY → implementation worker
+READY_FOR_REVIEW → independent reviewer
+CHANGES_REQUESTED → implementation worker
+BLOCKED / WAIT_PROVIDER → stop or bounded wait
+FOUNDER_REQUIRED → human authority
+APPROVED_FOR_EXTERNAL_ACTION → exact one-shot action
+DONE → checkpoint and close
+FAIL / CANCELLED → persist exact outcome
+```
+
+See `HERMES-SUPERVISOR.md`.
+
 ### DeepSeek Harness — execution plane
 
-Use DSH for the coding-agent lifecycle: sessions, agent loop, tools, filesystem/shell interaction and plugins. DSH may request an LLM through OmniRoute, but it does not become the source of project truth or authority.
+Use DSH for the coding-agent lifecycle: agent loop, sessions, tools, filesystem/shell/Git interaction and plugins. DSH receives bounded tasks from Hermes and returns structured results/evidence. It does not become the source of project truth or authority.
 
 ### OmniRoute — inference routing plane
 
-Use OmniRoute as the single LLM endpoint. It owns provider/model selection, provider health, quota/cost/latency signals, fallback and routing profiles. It should not own work-order state, business truth or approval policy.
+Use OmniRoute as the single LLM endpoint. It owns provider/model selection, health, quota/cost/latency signals, fallback and routing profiles. Hermes may choose a task routing class/policy envelope, but OmniRoute selects the concrete model/provider.
 
 ### Repository — truth and recovery plane
 
-Git-backed files own:
-
-- work orders and acceptance criteria;
-- architecture decisions;
-- session checkpoints;
-- verification/review evidence;
-- durable memory with provenance;
-- explicit capability and policy changes.
-
-Chat history and runtime-local auto-memory are accelerators, not the only copy of important state.
+Git-backed files own work orders, architecture decisions, state transitions, checkpoints, verification/review evidence, durable memory with provenance and explicit policy changes. Chat history and runtime-local auto-memory are accelerators, not the only copy of important state.
 
 ### Deterministic verification — evidence plane
 
@@ -57,51 +68,44 @@ Tests, typecheck, lint, static analysis, security scans, schema checks and targe
 
 ### Authority — governance plane
 
-A model can propose an effect but cannot approve itself. Permission is an external fact bound to a scope/action/target/version/time window. Changed content or stale approval invalidates the grant.
+A capable supervisor or worker cannot approve itself. Permission is an external fact bound to scope/action/target/version/time. Changed content or stale approval invalidates the grant.
 
 ## Engineering loop
 
 ```text
 REQUEST
   ↓
-WORK ORDER
+HERMES: BOUND + CLASSIFY + DISPATCH
   ↓
-RISK + ROUTE CLASSIFICATION
+DSH: PLAN + BUILD
   ↓
-PLAN
-  ↓
-BUILD
+OMNIROUTE: INFERENCE ROUTING
   ↓
 VERIFY
   ↓
 INDEPENDENT REVIEW
+  ↓
+HERMES: STATE TRANSITION
   ↓
 AUTHORITY GATE
   ↓
 CHECKPOINT / COMPLETE
 ```
 
-A loop has bounded exit states: verified completion, explicit stop, provider wait/failure, blocker, or human gate. Endless retry is not a valid state.
+## Supervisor invariants
 
-## Fail-closed rules
+- One active worker lease per project/work-order/phase.
+- A worker proposes state transitions; Hermes validates and persists them.
+- Hermes does not infer approval from model confidence, memory or prior successes.
+- Repeated worker failure triggers diagnosis/escalation, not infinite loops.
+- Provider failure is `WAIT_PROVIDER`/`FAIL`, never fabricated completion.
+- Consequential external execution is one-shot by default.
 
-- Invalid/missing structured output → fail, do not infer success.
-- Provider unavailable → wait/fail; never fabricate a response.
-- Verification unavailable → completion remains unverified.
-- Approval absent/stale/mismatched → deny the consequential action.
-- Memory conflict → surface the conflict; do not silently merge it into certainty.
-- Budget policy cannot be satisfied → stop or choose a specifically permitted fallback; never silently overspend.
+## Why the separation matters
 
-## Extension boundaries
-
-MCP/connectors, skills and plugins are optional extension surfaces. They must not own authoritative workflow state. Start connectors read-only, grant mutation narrowly, and keep credentials outside Git.
-
-## Why this is more robust than a single coding CLI
-
-A single vendor CLI often bundles agent behavior, model selection and runtime state. This architecture makes each component replaceable:
-
-- DSH can be upgraded/replaced without rewriting durable project state.
-- OmniRoute can change providers/models without changing agent workflows.
-- New memory retrieval can be added without changing authority semantics.
-- Verification gates can reject bad model output regardless of which model produced it.
-- Git retains a human-auditable history across model/provider outages.
+- Hermes can evolve without changing worker/model internals.
+- DSH can be replaced without rewriting durable project state.
+- OmniRoute can change providers/models without changing workflow semantics.
+- Memory can improve retrieval without becoming authority.
+- Verification gates reject bad output regardless of model/provider.
+- Git retains a human-auditable history across runtime/provider outages.

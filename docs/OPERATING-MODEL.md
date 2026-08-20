@@ -1,111 +1,71 @@
 # Operating model
 
-## 1. Convert intent into a bounded work order
+## 1. Hermes receives intent
 
-Before implementation, record:
+A user request, GitHub issue or scheduled project event enters Hermes Supervisor. Hermes reads the compact durable project interface instead of reconstructing state from chat.
 
-- objective;
-- in-scope and out-of-scope areas;
-- acceptance criteria;
-- verification commands;
-- risk class;
-- allowed routing/cost class;
-- external actions and required authority.
+## 2. Bound the work order
 
-Use `templates/WORK-ORDER.md`.
+Hermes records objective, in/out of scope, acceptance criteria, verification commands, risk class, routing/cost class, allowed tools and required authority.
 
-## 2. Classify before routing
+## 3. Acquire worker lease
 
-A task is not routed only by model popularity. Consider:
+Before dispatch, Hermes obtains a lock/lease keyed by project + work-order + phase. An existing active lease blocks duplicate execution.
 
-- complexity;
-- repository/context size;
-- security/production sensitivity;
-- latency tolerance;
-- budget ceiling;
-- need for independent review;
-- whether a free-only policy is hard or merely preferred.
+## 4. Dispatch DeepSeek Harness
 
-Then choose a route from `docs/ROUTING.md`.
+`READY` dispatches an implementation worker. Hermes sends a bounded task packet with state/evidence references; DSH executes the coding loop and returns structured evidence plus a proposed next state.
 
-## 3. Plan
+## 5. Route inference through OmniRoute
 
-The plan should be short enough to inspect and concrete enough to verify. It includes intended files/components, tests, migration/rollback concerns and authority-sensitive steps.
+Hermes chooses the task policy envelope; DSH requests the corresponding route; OmniRoute chooses the concrete model/provider using health/quota/cost/latency/task-fit signals.
 
-Do not treat a plan as permission to exceed the work-order scope.
+## 6. Deterministic verification
 
-## 4. Build
+Run the smallest complete evidence set appropriate to the project: typecheck, lint, unit/integration tests, security checks, schema validation, build and focused evals. “Should pass” is not evidence.
 
-Implement the smallest coherent change that satisfies the acceptance criteria. Avoid opportunistic refactors unless explicitly approved or necessary for correctness.
+## 7. Independent review
 
-Prefer tests/counterexamples that fail before the fix where practical.
+After implementation, Hermes transitions to `READY_FOR_REVIEW` and dispatches a separate reviewer profile/session. The reviewer reads the actual diff and evidence. Verdicts include `PASS`, `CHANGES_REQUESTED`, `RISK_ESCALATION` or `FOUNDER_REQUIRED`.
 
-## 5. Deterministic verification
+## 8. Rework loop is bounded
 
-Run the smallest complete evidence set appropriate to the project, for example:
+`CHANGES_REQUESTED` returns only the concrete findings to an implementation worker. Repeated failure triggers diagnosis/escalation; it does not create an infinite loop.
+
+## 9. Authority gate
+
+If the next action is external, destructive, production-facing, financial, permission-changing or otherwise consequential, Hermes sets `FOUNDER_REQUIRED` and stops until exact human approval exists.
+
+## 10. External execution is one-shot
+
+After approval: freeze exact artifact/action, revalidate approval binding, execute once, persist exact result. Failure does not auto-rerun.
+
+## 11. Checkpoint and close
+
+Hermes persists objective, changes, tests, reviewer verdict, blockers/unknowns, routing/cost anomalies, external actions, next action and commit/PR reference. Then state moves to `DONE` only if acceptance criteria and required gates are satisfied.
+
+## Canonical loop
 
 ```text
-typecheck
-lint
-unit/integration tests
-targeted security checks
-schema/migration validation
-build
-focused evals / negative counterchecks
+ISSUE / INTENT
+  ↓
+HERMES: READ STATE
+  ↓
+BOUND WORK ORDER + LOCK
+  ↓
+DSH IMPLEMENTATION WORKER
+  ↓
+OMNIROUTE MODEL ROUTING
+  ↓
+VERIFY
+  ↓
+HERMES → INDEPENDENT REVIEWER
+  ↓
+PASS / CHANGES_REQUESTED / ESCALATE
+  ↓
+HUMAN GATE WHEN REQUIRED
+  ↓
+ONE-SHOT EXTERNAL ACTION
+  ↓
+CHECKPOINT + DONE
 ```
-
-Record what actually ran. “Should pass” is not evidence.
-
-## 6. Independent review
-
-The reviewer reads the actual diff and evidence, not just the builder's summary. It may request changes, approve the engineering result, or escalate risk. Repeated review failure should lead to diagnosis/escalation, not infinite cycling.
-
-## 7. Authority gate
-
-Ask whether the next action is external, destructive, production-facing, financial, legal, permission-changing or otherwise difficult to reverse.
-
-If yes, require the exact-action authority described in `SECURITY-AND-AUTHORITY.md`.
-
-## 8. External execution discipline
-
-Before a consequential external action:
-
-1. freeze the exact artifact/action;
-2. finish local verification;
-3. obtain required approval;
-4. execute once;
-5. persist the exact outcome.
-
-If it fails, do not automatically rerun it. Diagnose and create a new explicitly authorized attempt only after the prerequisite or protocol materially changes.
-
-This prevents retry loops from turning a transport/provider failure into fabricated evidence or repeated unintended effects.
-
-## 9. Checkpoint
-
-After substantive work, create a durable session report containing:
-
-- objective;
-- changes;
-- tests/evidence;
-- decisions;
-- blockers/unknowns;
-- cost/routing anomalies if relevant;
-- external actions;
-- next action;
-- commit/PR reference.
-
-A new agent should not need the prior chat to resume.
-
-## 10. Consistency check before completion
-
-Ask:
-
-- Does code match the work order?
-- Do tests and docs describe the same behavior?
-- Did a capability or authority boundary change?
-- Did any unknown get narrated as success?
-- Did any failed external action get retried without a new explicit attempt?
-- Can a fresh agent understand the new state from the repository?
-- Did routing remain within the allowed budget/provider policy?
-
-Only then mark the task complete.

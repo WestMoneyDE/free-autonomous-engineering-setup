@@ -1,25 +1,15 @@
 # Installation
 
-This guide installs the integration without copying third-party source code into this repository.
+This setup has three runtime layers: **Hermes Supervisor → DeepSeek Harness → OmniRoute**.
 
 ## 0. Requirements
-
-Recommended for this starter:
 
 - Git
 - Node.js 20+
 - npm / npx
-- curl for command-line endpoint checks (optional on Windows if you prefer PowerShell)
+- a working Hermes Agent installation for the supervisor layer
 
-Check:
-
-```bash
-git --version
-node --version
-npm --version
-```
-
-Clone this repository:
+Clone and validate:
 
 ```bash
 git clone https://github.com/WestMoneyDE/free-autonomous-engineering-setup.git
@@ -27,224 +17,129 @@ cd free-autonomous-engineering-setup
 npm test
 ```
 
-The bootstrap scripts are dry-run/preflight by default:
+## 1. Start OmniRoute
 
-```bash
-bash scripts/bootstrap.sh
-```
-
-or:
-
-```powershell
-pwsh -File scripts/bootstrap.ps1
-```
-
-Pass `--apply` / `-Apply` only if you want the script to globally install OmniRoute. DeepSeek Harness remains an on-demand `npx` launch so the script does not silently modify its rapidly changing developer-preview configuration.
-
----
-
-## 1. Install or run OmniRoute
-
-### Option A — no global install
+No global install required:
 
 ```bash
 npx omniroute
 ```
 
-Upstream's quickstart serves the OpenAI-compatible API at:
+Local OpenAI-compatible endpoint:
 
 ```text
 http://localhost:20128/v1
 ```
 
-List available models:
-
-```bash
-curl http://localhost:20128/v1/models
-```
-
-### Option B — global CLI
+Optional global install:
 
 ```bash
 npm install -g omniroute
-omniroute --version
 omniroute setup
 omniroute
 ```
 
-Use `omniroute setup` to add or configure provider connections. Provider/API availability and free tiers change over time; use the current OmniRoute UI/catalog rather than treating this repository's examples as a permanent provider inventory.
-
-### Local endpoint authentication
-
-OmniRoute's public quickstart examples use any non-empty bearer token for the default local endpoint, such as `dummy-key`. Do not reuse that convention for a shared or remotely exposed gateway. Configure a real endpoint key and network access controls for remote use.
-
----
-
-## 2. Run DeepSeek Harness
-
-Upstream's npm launch is:
+## 2. Start DeepSeek Harness
 
 ```bash
 npx @deepseek-ai/dsh web
 ```
 
-The local Web UI starts on:
+Local UI:
 
 ```text
 http://127.0.0.1:3080
 ```
 
-DeepSeek Harness is currently marked **developer preview** by its maintainers. Expect compatibility-breaking changes and pin/review upgrades before unattended production use.
-
-### Optional: run DSH from source
-
-Use the upstream method if you need to develop the harness itself:
-
-```bash
-git clone https://github.com/deepseek-ai/deepseek-harness.git
-cd deepseek-harness
-pnpm install
-pnpm run build
-pnpm dsh web
-```
-
-This repository does not require a source checkout for normal use.
-
----
+DeepSeek Harness is currently **developer preview**; pin/review upgrades before unattended operation.
 
 ## 3. Connect DSH to OmniRoute
 
-### Recommended: Web UI
-
-Start both processes, then in DSH:
-
-1. Open **Settings → Models**.
-2. Choose **Add a custom provider**.
-3. Provider ID: `omniroute`.
-4. Base URL: `http://127.0.0.1:20128/v1`.
-5. API protocol: `openai-completions`.
-6. Credential: for a local quickstart, `dummy-key`; for shared/remote use, your actual endpoint key.
-7. Add model `auto/coding` or use **Fetch available models** if the endpoint/model list is reachable from the UI.
-8. Save.
-9. Select `omniroute / auto/coding` for a **new** coding session.
-
-DSH records a selected model in an active session, so start a new session when intentionally changing routing behavior for a task.
-
-### Configuration-as-code
-
-The generic DSH multi-provider adapter supports hand-declared OpenAI-compatible gateways. Use this repository's example:
-
-[`config/dsh-omniroute.settings.example.yaml`](../config/dsh-omniroute.settings.example.yaml)
-
-Merge the `llm-pi-ai` section into your existing DSH settings. Do not replace unrelated DSH settings.
-
-The example uses:
-
-```yaml
-api: openai-completions
-baseURL: http://127.0.0.1:20128/v1
-apiKeyEnv: OMNIROUTE_API_KEY
-```
-
-and conservative compatibility switches:
-
-```yaml
-compat:
-  supportsDeveloperRole: false
-  maxTokensField: max_tokens
-```
-
-These switches are appropriate when an OpenAI-compatible gateway rejects OpenAI-specific `developer` roles or `max_completion_tokens`. If your current OmniRoute/DSH versions accept the native shape without them, test and simplify deliberately rather than guessing.
-
-Set the referenced key in the environment, not Git:
-
-Bash:
-
-```bash
-export OMNIROUTE_API_KEY=dummy-key
-```
-
-PowerShell:
-
-```powershell
-$env:OMNIROUTE_API_KEY = "dummy-key"
-```
-
-Use a real endpoint key outside the local-only quickstart.
-
----
-
-## 4. Select a routing policy
-
-Start with:
+In DSH open **Settings → Models → Add a custom provider**:
 
 ```text
-auto/coding
+Provider ID: omniroute
+Base URL:    http://127.0.0.1:20128/v1
+Protocol:    openai-completions
+API key:     dummy-key          # local quickstart only
+Model:       auto/coding
 ```
 
-Other useful routes:
+Or merge [`../config/dsh-omniroute.settings.example.yaml`](../config/dsh-omniroute.settings.example.yaml) into DSH settings.
+
+## 4. Prepare each project for Hermes supervision
+
+Hermes should consume a compact durable interface, for example:
 
 ```text
-auto/coding:fast
-auto/coding:cheap
-auto/coding:reliable
-auto/coding:free
-auto/reasoning:pro
+brain/STATE.json
+CURRENT-WORK-ORDER.md
+.state/tasks/
+.state/sessions/
+.state/evidence/
 ```
 
-Read [ROUTING.md](ROUTING.md) before relying on `:free`: upstream's candidate filter is fail-open when no candidate satisfies the filter, so it is not a hard zero-cost guarantee.
+Minimum state fields:
 
----
-
-## 5. Adopt the repository operating contract in a project
-
-For any project you want DSH to work on, copy/adapt these files conceptually or directly:
-
-- `AGENTS.md` — invariant and permission contract;
-- `templates/WORK-ORDER.md` — bounded task definition;
-- `templates/SESSION-REPORT.md` — durable checkpoint;
-- `docs/MEMORY-AND-STATE.md` — memory/provenance model;
-- `docs/SECURITY-AND-AUTHORITY.md` — human authority boundary.
-
-Do not let a generic starter overwrite stricter project-specific security or compliance rules.
-
----
-
-## 6. Verification checklist
-
-Run repository self-check:
-
-```bash
-npm test
+```json
+{
+  "project": "my-project",
+  "status": "READY",
+  "active_work_order": null,
+  "branch": "main",
+  "blocker": null,
+  "next_action": null
+}
 ```
 
-Check OmniRoute:
+Adopt `AGENTS.md`, the work-order/session templates, memory rules and security/authority rules in every supervised project.
 
-```bash
-curl http://localhost:20128/v1/models
+## 5. Configure Hermes as external supervisor
+
+Hermes should:
+
+1. read the compact project state;
+2. map `READY` to an implementation worker;
+3. map `READY_FOR_REVIEW` to an independent reviewer;
+4. map `CHANGES_REQUESTED` back to implementation;
+5. map `BLOCKED`/`WAIT_PROVIDER` to stop/bounded wait;
+6. map `FOUNDER_REQUIRED` to the human channel;
+7. use duplicate-run locks;
+8. never infer approval;
+9. persist every state transition.
+
+The exact Hermes command/plugin wiring can vary by local installation. The architectural contract is specified in [`HERMES-SUPERVISOR.md`](HERMES-SUPERVISOR.md).
+
+## 6. Routing policy
+
+Start with `auto/coding`. Other useful routes include `auto/coding:fast`, `auto/coding:cheap`, `auto/coding:reliable`, `auto/coding:free` and `auto/reasoning:pro`.
+
+Read [ROUTING.md](ROUTING.md) before relying on `:free`; it is free-preferred, not a hard zero-cost guarantee.
+
+## 7. Smoke test
+
+Use a disposable branch and a harmless work order:
+
+```text
+STATE = READY
+  ↓
+Hermes dispatches DSH
+  ↓
+DSH uses OmniRoute
+  ↓
+small local change + test
+  ↓
+READY_FOR_REVIEW
+  ↓
+Hermes dispatches independent reviewer
+  ↓
+PASS
+  ↓
+DONE
 ```
 
-Check DSH:
+Confirm no push/deploy/external action occurs without the configured human gate.
 
-- Web UI is reachable at `http://127.0.0.1:3080`.
-- `omniroute` appears as a configured provider.
-- `auto/coding` is selectable for a new session.
-- A harmless repository-read task can complete without external side effects.
+## 8. Upgrade discipline
 
-Then test a bounded coding task in a disposable branch before enabling broader autonomous operation.
-
----
-
-## 7. Upgrade discipline
-
-Before upgrading DSH or OmniRoute:
-
-1. read upstream release notes;
-2. preserve/export current configuration;
-3. validate the custom provider route;
-4. run a read-only smoke task;
-5. run a small coding task with tests;
-6. inspect routing/cost telemetry;
-7. only then promote the new version to regular use.
-
-Never treat a successful package installation as proof that routing, authority gates or budget behavior remain semantically unchanged.
+Upgrade one layer at a time. Preserve/export configuration, run read-only smoke tests, then a bounded coding task, verify state transitions/locks, inspect routing/cost telemetry, and only then promote the new version.

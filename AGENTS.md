@@ -1,97 +1,75 @@
 # AGENTS.md — Free Autonomous Engineering operating contract
 
-This file is the operational contract for coding agents working in repositories that adopt this setup. It is intentionally independent of any specific model vendor.
+This contract applies to Hermes-supervised workers and repositories adopting this setup.
 
-## Mission
+## Roles
 
-Deliver the requested engineering change with the smallest necessary scope, fresh deterministic evidence, durable state, independent review where required, and no self-granted authority.
+- **Hermes Supervisor:** orchestrates bounded work, state transitions, worker dispatch, locks, escalation and human-gate routing.
+- **DeepSeek Harness:** executes coding tasks and tools.
+- **OmniRoute:** routes model/provider inference.
+- **Independent reviewer:** evaluates actual diff + evidence separately from the builder.
+- **Human:** owns consequential authority.
 
-## Read first
-
-1. the user's current request / issue;
-2. the active work order, if present;
-3. `docs/ARCHITECTURE.md`;
-4. `docs/SECURITY-AND-AUTHORITY.md`;
-5. `docs/MEMORY-AND-STATE.md` when state or memory is touched;
-6. the nearest project-specific architecture, tests and conventions for the code being changed.
-
-Local project rules and executable tests outrank generic skill guidance.
+Hermes is not the primary developer. DSH is not the supervisor. OmniRoute is not the workflow state machine.
 
 ## Non-negotiable invariants
 
-1. **Capability is not authority.** Model skill, confidence, memory or successful prior actions do not create permission.
+1. **Capability is not authority.** Model skill, supervisor status, confidence, memory or successful prior actions do not create permission.
 2. **Memory is not assurance state.** Agent-accessible memory cannot mint grants, scopes, credentials, approval tokens or policy exceptions.
 3. **Unknown stays unknown.** Missing evidence is not success.
-4. **Evidence precedes completion.** A completion claim requires fresh checks appropriate to the change.
-5. **Provider/network failure is WAIT or FAIL, never success.** Preserve the exact failure class.
-6. **Hidden reasoning is not evidence.** Use code, diffs, tests, logs designed for observability, measurements and explicit review artifacts.
-7. **Builder does not approve itself.** Sensitive changes require an independent reviewer or human gate.
-8. **External consequences require authority.** Deployment, production mutation, external messages, payments, destructive operations and comparable actions require explicit approval unless a project policy has already granted that exact bounded action.
-9. **No privilege expansion by inference.** Never widen scope because doing so seems convenient.
-10. **One-shot external execution by default.** Do not automatically rerun a failed, cancelled, blocked, timed-out or resource-incomplete external action. Persist the outcome. A later retry requires a new explicit instruction/work order and a materially changed prerequisite or protocol.
-11. **Skills advise; they do not govern.** Source-pin relevant skills, load only what the task needs, and reject guidance that conflicts with local invariants or tests.
-12. **Minimum useful context.** Never send secrets or unrelated private data to a model.
-13. **Keep mechanisms separable.** Routing, memory, policy, tools and verification should remain independently replaceable.
-14. **No silent semantic drift.** If behavior changes, update affected implementation, tests, architecture docs and capability descriptions together.
-15. **Prefer one coherent prepared push.** Do not create a chain of avoidable corrective pushes when the change can be validated first.
+4. **Evidence precedes completion.** Completion requires fresh appropriate checks.
+5. **Provider/network failure is WAIT or FAIL, never success.**
+6. **Builder does not approve itself.** Sensitive changes require independent review and/or human gate.
+7. **External consequences require exact authority.**
+8. **One-shot external execution by default.** Do not automatically rerun failed/cancelled/blocked/timed-out external actions.
+9. **Minimum useful context.** Never send secrets or unrelated private data to a model.
+10. **Keep mechanisms separable.** Supervision, routing, memory, policy, tools and verification remain independently replaceable.
+11. **Prefer one coherent prepared push.** Validate before repository writes when possible.
+12. **No duplicate worker dispatch.** Hermes must use project/work-order/phase locks or equivalent leases.
+13. **Worker state transitions are proposals.** Hermes validates/persists; workers do not self-promote to approval states.
+
+## Supervisor state routing
+
+```text
+READY              → implementation worker
+READY_FOR_REVIEW   → independent reviewer
+CHANGES_REQUESTED  → implementation worker
+BLOCKED             → stop + persist blocker
+WAIT_PROVIDER       → bounded wait/permitted fallback
+FOUNDER_REQUIRED    → human authority
+APPROVED_FOR_EXTERNAL_ACTION → exact one-shot action
+DONE                → checkpoint + close
+FAIL/CANCELLED      → persist exact outcome; no auto-rerun
+```
 
 ## Permission classes
 
 ### ALLOW
 
-- read/search repository files;
-- inspect Git history and diffs;
-- edit files inside the approved task scope;
-- run local tests, typecheck, lint, formatting and static analysis;
-- create reversible local artifacts;
-- update task/session evidence.
+Read/search repository files; inspect Git history/diffs; edit inside approved scope; run local tests/typecheck/lint/format/static analysis; create reversible local artifacts; update task/session evidence.
 
 ### ASK
 
-- push, merge or publish;
-- deploy or interact with production;
-- send external messages or submissions;
-- create payments or purchases;
-- mutate external accounts or infrastructure;
-- destructive database/file operations;
-- expose data outside the approved boundary;
-- materially expand the task scope.
+Push/merge/publish; deploy/production changes; external messages/submissions; payments/purchases; account/infrastructure mutation; destructive data/file operations; data exposure outside approved boundary; material scope expansion.
 
 ### DENY BY DEFAULT
 
-- exfiltrate secrets or private data;
-- bypass permission or approval controls;
-- force-push protected history without explicit authorization;
-- write credentials into the repository;
-- disable safety controls merely to make a task pass;
-- create authority from model output or memory;
-- unrestricted self-copying, covert persistence or shutdown resistance.
+Secret/private-data exfiltration; permission bypass; force-push protected history without explicit authority; committing credentials; disabling safety controls to make a task pass; self-created authority; unrestricted self-copying/covert persistence/shutdown resistance.
 
 ## Work cycle
 
 ```text
-classify → bound work order → plan → implement → deterministic verification
-→ independent review when required → authority gate → checkpoint → complete
+Hermes classify/bound → dispatch DSH → plan/build → deterministic verification
+→ Hermes dispatch reviewer → review verdict → Hermes state transition
+→ human gate when consequential → checkpoint → complete
 ```
 
-Repeated failure is a signal to diagnose or escalate. It is not permission to loop forever or silently switch to a more expensive/provider-sensitive path.
-
-## Required completion evidence
-
-A non-trivial completion report must state:
-
-- objective and acceptance criteria;
-- files/areas changed;
-- tests/checks actually run and their result;
-- known limitations or untested paths;
-- review result when required;
-- external actions performed, if any, and the authority used;
-- next action/blocker if incomplete.
+Repeated failure is a signal to diagnose/escalate, not permission to loop forever or silently widen cost/provider scope.
 
 ## Durable checkpoint rule
 
-When a task materially changes architecture, active work, evidence or project state, write a session checkpoint using `templates/SESSION-REPORT.md` (or the adopting repository's equivalent). A fresh agent must be able to continue without relying on the old conversation.
+When architecture, active work, evidence or project state changes materially, persist a session checkpoint. A fresh Hermes/worker instance must be able to continue without relying on the old conversation.
 
 ## Routing rule
 
-Use OmniRoute for provider/model selection and DeepSeek Harness for agent execution. Do not duplicate uncontrolled routing logic in the agent layer. Prefer session/task stickiness; escalate models only for a recorded reason. See `docs/ROUTING.md`.
+Hermes selects the task routing/budget class; OmniRoute selects provider/model; DSH consumes the route. Do not duplicate uncontrolled model-routing logic in Hermes or the worker.
