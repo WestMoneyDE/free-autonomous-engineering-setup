@@ -2,6 +2,8 @@
 
 [Deutsch](README.de.md) · [Architecture](docs/ARCHITECTURE.md) · [Installation](docs/INSTALLATION.md) · [Routing](docs/ROUTING.md) · [Security](docs/SECURITY-AND-AUTHORITY.md) · [Costs](docs/COSTS.md)
 
+![Free Autonomous Engineering Setup — DeepSeek Harness + OmniRoute autonomous coding architecture](assets/free-autonomous-engineering-setup-hero.jpg)
+
 > A local-first, free-preferred autonomous coding control plane built around **DeepSeek Harness + OmniRoute + GitHub-backed durable engineering state**.
 
 This repository combines the strongest reusable engineering patterns from [`WestMoneyDE/ai-engineering-stack`](https://github.com/WestMoneyDE/ai-engineering-stack) and [`WestMoneyDE/LOGOS-1`](https://github.com/WestMoneyDE/LOGOS-1) with [`deepseek-ai/deepseek-harness`](https://github.com/deepseek-ai/deepseek-harness) as the coding runtime and [`diegosouzapw/OmniRoute`](https://github.com/diegosouzapw/OmniRoute) as the model gateway.
@@ -240,6 +242,8 @@ See [docs/COSTS.md](docs/COSTS.md) for hard/soft budget patterns.
 ```text
 .
 ├── AGENTS.md
+├── assets/
+│   └── free-autonomous-engineering-setup-hero.jpg
 ├── config/
 │   ├── .env.example
 │   └── dsh-omniroute.settings.example.yaml
