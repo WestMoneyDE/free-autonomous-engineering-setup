@@ -2,7 +2,7 @@
 
 [Deutsch](README.de.md) · [Architecture](docs/ARCHITECTURE.md) · [Installation](docs/INSTALLATION.md) · [Routing](docs/ROUTING.md) · [Security](docs/SECURITY-AND-AUTHORITY.md) · [Costs](docs/COSTS.md)
 
-![Free Autonomous Engineering Setup — DeepSeek Harness + OmniRoute autonomous coding architecture](assets/free-autonomous-engineering-setup-hero.jpg)
+![Free Autonomous Engineering Setup — DeepSeek Harness + OmniRoute autonomous coding architecture](assets/free-autonomous-engineering-setup-hero.webp)
 
 > A local-first, free-preferred autonomous coding control plane built around **DeepSeek Harness + OmniRoute + GitHub-backed durable engineering state**.
 
@@ -243,7 +243,7 @@ See [docs/COSTS.md](docs/COSTS.md) for hard/soft budget patterns.
 .
 ├── AGENTS.md
 ├── assets/
-│   └── free-autonomous-engineering-setup-hero.jpg
+│   └── free-autonomous-engineering-setup-hero.webp
 ├── config/
 │   ├── .env.example
 │   └── dsh-omniroute.settings.example.yaml
