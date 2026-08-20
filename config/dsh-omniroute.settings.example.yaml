@@ -1,0 +1,39 @@
+# Merge this section into the existing DeepSeek Harness settings.
+# Do not overwrite unrelated settings.
+#
+# OMNIROUTE_API_KEY is resolved from the environment. For a local-only
+# OmniRoute quickstart, upstream examples accept any non-empty bearer value
+# such as "dummy-key". Use a real endpoint key for shared/remote gateways.
+
+llm-pi-ai:
+  providers:
+    omniroute:
+      displayName: OmniRoute
+      apiKeyEnv: OMNIROUTE_API_KEY
+      api: openai-completions
+      baseURL: http://127.0.0.1:20128/v1
+      compat:
+        supportsDeveloperRole: false
+        maxTokensField: max_tokens
+      models:
+        - id: auto/coding
+          name: Coding / balanced
+        - id: auto/coding:fast
+          name: Coding / fast
+        - id: auto/coding:cheap
+          name: Coding / cheap
+        - id: auto/coding:reliable
+          name: Coding / reliable
+        - id: auto/coding:free
+          name: Coding / free-preferred
+        - id: auto/reasoning:pro
+          name: Reasoning / pro
+        - id: auto/fast
+          name: General / fast
+        - id: auto/cheap
+          name: General / cheap
+
+# IMPORTANT:
+# OmniRoute documents category/tier filters such as :free as fail-open when
+# no candidate matches. `auto/coding:free` is therefore free-preferred, not
+# a hard $0 policy. See docs/ROUTING.md and docs/COSTS.md.

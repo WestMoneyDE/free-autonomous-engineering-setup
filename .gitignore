@@ -1,0 +1,31 @@
+# Credentials and local configuration
+.env
+.env.*
+!.env.example
+config/.env
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Runtime state that may contain local/private information
+.dsh/
+.omniroute/
+.state/local/
+
+# Node
+node_modules/
+npm-debug.log*
+pnpm-debug.log*
+yarn-error.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Generated logs / temporary outputs
+logs/
+tmp/
+*.log

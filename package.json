@@ -1,0 +1,15 @@
+{
+  "name": "free-autonomous-engineering-setup",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Free-preferred autonomous coding control plane with DeepSeek Harness, OmniRoute and durable evidence-driven engineering state.",
+  "type": "module",
+  "scripts": {
+    "test": "node scripts/verify-repo.mjs",
+    "verify": "node scripts/verify-repo.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}
