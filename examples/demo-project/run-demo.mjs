@@ -17,6 +17,8 @@ import { acceptWorkerReturn, acceptReviewVerdict } from '../../src/workers/contr
 import { evaluateProposal } from '../../src/supervisor/state-machine.mjs';
 import { validateWorkOrder } from '../../src/schemas/schemas.mjs';
 import { intersectScopes } from '../../src/policy/scope-engine.mjs';
+import { MemoryStore } from '../../src/memory/store.mjs';
+import { MemoryFactory } from '../../src/memory/factory.mjs';
 
 const keep = process.argv.includes('--keep');
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'faes-demo-'));
@@ -90,6 +92,29 @@ registry.transition(project, 'worker_returned', { guards: { worker_result_valid:
 leases.release(packet.lease_key, 'builder:worker-a', packet.fencing_token);
 log('BUILDER RETURN', `proposed ${builderReturn.proposed_next_state}; supervisor validated and persisted`);
 
+// --- scoped memory: the Memory Factory is the only entry into the fabric ---
+const memory = new MemoryFactory(new MemoryStore(path.join(root, project, '.state', 'memory')), { project });
+const note = memory.ingest({
+  project,
+  kind: 'semantic',
+  content: 'greet() must stay deterministic: no locale lookup and no clock read',
+  source_provenance: { source: 'work-order', source_version: 'demo@1', kind: 'repository', recorded_at: new Date().toISOString() },
+  authority: { class: 'observation', admissible_uses: ['inform-proposal'] },
+  confidence: 'observed',
+  retention: 'project',
+  visibility: ['project'],
+});
+const recalled = memory.retrieve('deterministic greet', scopeDecision);
+const projection = memory.project({
+  record_ids: [note.id], purpose: 'independent review packet', audience: 'project',
+  valid_until: '2027-01-01T00:00:00.000Z', scopeDecision,
+});
+const scopeBound = projection.scope_digest === scopeDecision.digest;
+log('MEMORY', `scope_digest ${scopeDecision.digest}
+retrieved=${recalled.ok ? recalled.results.length : `DENIED (${recalled.note})`} projection=${scopeBound ? 'SCOPE-BOUND' : 'MISMATCH'}`);
+// Memory stays proposal-side: no AssuranceStore is constructed here and no
+// security scan is executed; a remembered note can never become authority.
+
 // --- independent review ---
 const reviewPacket = dispatcher.dispatch({ project, workOrder, expectedHash: woHash, state: 'READY_FOR_REVIEW', workerClass: 'reviewer', actor: 'reviewer:worker-b', scopeDecision });
 const verdict = acceptReviewVerdict({
@@ -118,7 +143,7 @@ const recoveryOk = registry.verifyRecovery(project);
 const completion = ledger.supportsCompletion(workOrder.id, ['test', 'review']);
 log('FINAL', `state=${finalState.status} recovery=${recoveryOk ? 'REPLAY==SNAPSHOT' : 'MISMATCH'} completionEvidence=${completion.ok ? 'SATISFIED' : completion.unmet}`);
 
-if (finalState.status !== 'DONE' || !recoveryOk || !completion.ok) {
+if (finalState.status !== 'DONE' || !recoveryOk || !completion.ok || !recalled.ok || recalled.results.length === 0 || !scopeBound) {
   console.error('DEMO FAILED');
   process.exit(1);
 }

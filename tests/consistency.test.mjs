@@ -149,3 +149,10 @@ test('public docs state identity lineage capabilities and security non-claims', 
   assert.match(text, /no real Strix (scan|execution)|Strix.*NOT_EXECUTED/i);
   assert.match(text, /unattended continuous operation.*NOT_CLAIMED|NOT_CLAIMED.*unattended continuous operation/i);
 });
+
+test('demo exercises the scoped memory loop without assurance or Strix', () => {
+  const demo = read('examples/demo-project/run-demo.mjs');
+  for (const symbol of ['intersectScopes', 'scopeDecision', 'scope_digest', 'MemoryFactory', '.retrieve(', '.project(', 'READY_FOR_REVIEW', 'DONE']) assert.ok(demo.includes(symbol), `demo missing ${symbol}`);
+  assert.doesNotMatch(demo, /new AssuranceStore/);
+  assert.doesNotMatch(demo, /spawn.*strix|exec.*strix/i);
+});
