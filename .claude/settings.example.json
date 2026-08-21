@@ -23,7 +23,7 @@
   },
   "hooks": {
     "PreToolUse": [{
-      "matcher": "Write|Edit|MultiEdit",
+      "matcher": "Write|Edit|MultiEdit|Bash|Shell",
       "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/protect-sensitive.mjs\"" }]
     }]
   }

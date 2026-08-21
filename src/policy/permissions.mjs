@@ -17,12 +17,29 @@ export const SENSITIVE_PATH_PATTERNS = Object.freeze([
 ]);
 
 const DENY_COMMANDS = Object.freeze([
-  /^git\s+push\s+(--force|-f|--force-with-lease)\b/,
   /^git\s+reset\s+--hard\b/,
   /^npm\s+publish\b/,
   /^terraform\s+(apply|destroy)\b/,
   /(^|\s)rm\s+-rf\s+\/(\s|$)/,
 ]);
+
+const shellTokens = (command) => command.match(/"[^"]*"|'[^']*'|\S+/g)?.map((token) => token.replace(/^(['"])(.*)\1$/, '$2')) ?? [];
+const basename = (token) => token.replaceAll('\\', '/').split('/').at(-1)?.toLowerCase();
+
+function isForcePush(tokens) {
+  if (basename(tokens[0] ?? '') !== 'git') return false;
+  const pushIndex = tokens.findIndex((token, index) => index > 0 && token === 'push');
+  if (pushIndex < 0) return false;
+  return tokens.some((token) => token === '-f' || /^--force(?:=(?:true|1)?)?$/i.test(token) || /^--force-with-lease(?:=.*)?$/i.test(token));
+}
+
+function isDirectStrix(tokens) {
+  const first = basename(tokens[0] ?? '');
+  if (first === 'strix' || first === 'strix.exe') return true;
+  if (['npx', 'uvx'].includes(first)) return basename(tokens[1] ?? '') === 'strix';
+  if (first === 'pipx') return tokens[1] === 'run' && basename(tokens[2] ?? '') === 'strix';
+  return false;
+}
 
 const ASK_COMMANDS = Object.freeze([
   /^git\s+push\b/,
@@ -68,6 +85,9 @@ export function classifyWritePath(root, targetPath) {
 /** Classify a shell command: deny > ask > allow > ask (default-unknown = ask). */
 export function classifyCommand(command) {
   const c = command.trim();
+  const tokens = shellTokens(c);
+  if (isForcePush(tokens)) return { decision: 'deny', reason: 'force push denied by canonical policy' };
+  if (isDirectStrix(tokens)) return { decision: 'deny', reason: 'direct Strix execution requires the separate authorized review gate' };
   for (const p of DENY_COMMANDS) if (p.test(c)) return { decision: 'deny', reason: `denied by policy pattern ${p}` };
   for (const p of ASK_COMMANDS) if (p.test(c)) return { decision: 'ask', reason: `externally visible / hard to reverse: ${p}` };
   for (const p of ALLOW_COMMANDS) if (p.test(c)) return { decision: 'allow', reason: 'routine local reversible operation' };

@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "validation_kind": "post-implementation-reproducibility",
+  "input_composition": { "red": "scenario bytes", "green": "skill bytes + LF---SCENARIO---LF + scenario bytes" },
+  "timestamp": "2026-08-21T00:00:00+02:00",
+  "external_actions": "NOT_EXECUTED",
+  "discarded_runs": [{ "stable_id": "task4-repro-03-green-discarded", "reason": "summary supplied instead of exact skill; excluded before next skill" }],
+  "runs": [
+    {
+      "order": 1, "stable_id": "task4-repro-01", "skill": "plan-work", "model": "gpt-5.6-sol", "reasoning": "low",
+      "scenario_file": "01-plan-work/scenario.md", "skill_file": ".skills/plan-work/SKILL.md", "skill_sha256": "61ad4e08866634bcfbff3952bd968da08fce9a2d129ba549b01e46a28c02f5f8",
+      "red": { "scenario_sha256": "c9562cbe1268ac2dfb1707130c4952d9a7e97643e538df291a427f18ce7c4ce3", "input_sha256": "c9562cbe1268ac2dfb1707130c4952d9a7e97643e538df291a427f18ce7c4ce3" },
+      "green": { "scenario_sha256": "c9562cbe1268ac2dfb1707130c4952d9a7e97643e538df291a427f18ce7c4ce3", "input_sha256": "c9eeec89923dc0b96c6e3c7e8b5ecac8a858d99ce2a2bd57c768e2c2ebb80968" },
+      "files": { "01-plan-work/scenario.md": "c9562cbe1268ac2dfb1707130c4952d9a7e97643e538df291a427f18ce7c4ce3", "01-plan-work/red-output.md": "512e8b71c0497961e89915aed7cadfadee44458f4f19b7d245ec1d43a8615837", "01-plan-work/green-output.md": "0509403842111298f96f4fd28f5d60d93f2be9e094cc9650f6104a986aa3ba20" }
+    },
+    {
+      "order": 2, "stable_id": "task4-repro-02", "skill": "build-scoped-change", "model": "gpt-5.6-sol", "reasoning": "low",
+      "scenario_file": "02-build-scoped-change/scenario.md", "skill_file": ".skills/build-scoped-change/SKILL.md", "skill_sha256": "093c284d262787df3050d6e99660a64dbbe9190d7a7cc10444ef86292aa5fd85",
+      "red": { "scenario_sha256": "ca58dd2211aeecd954b52a1f5c0fcd76d71f670161774bbea6783fba1bc94bfd", "input_sha256": "ca58dd2211aeecd954b52a1f5c0fcd76d71f670161774bbea6783fba1bc94bfd" },
+      "green": { "scenario_sha256": "ca58dd2211aeecd954b52a1f5c0fcd76d71f670161774bbea6783fba1bc94bfd", "input_sha256": "806e29fb8d7cb45871a6c38ee81c5b4ab18cb4dbd7445e9dee3df0911c5a250a" },
+      "files": { "02-build-scoped-change/scenario.md": "ca58dd2211aeecd954b52a1f5c0fcd76d71f670161774bbea6783fba1bc94bfd", "02-build-scoped-change/red-output.md": "3ee0618ba08d915520407d9c5afe6611f53a69ce6a97e87b8dfdd32ecca6bb7d", "02-build-scoped-change/green-output.md": "98a4c138ec0862331108ee67cdd0d0258d607e68d669b9f7561134b46e20c311" }
+    },
+    {
+      "order": 3, "stable_id": "task4-repro-03", "skill": "verify-evidence", "model": "gpt-5.6-sol", "reasoning": "low",
+      "scenario_file": "03-verify-evidence/scenario.md", "skill_file": ".skills/verify-evidence/SKILL.md", "skill_sha256": "76e1542bee919a4539e800345d83d0a8668cfe4b10ea68302a70749db3e4bf5b",
+      "red": { "scenario_sha256": "b27d1887955fa8339726e83b8605c17951de3ee02e37ebe911dbacf7820f8e27", "input_sha256": "b27d1887955fa8339726e83b8605c17951de3ee02e37ebe911dbacf7820f8e27" },
+      "green": { "scenario_sha256": "b27d1887955fa8339726e83b8605c17951de3ee02e37ebe911dbacf7820f8e27", "input_sha256": "d80874f63e864722cbfa8bee3ce604aba92d6d26fc422dd863d6cba509ef0aa6" },
+      "files": { "03-verify-evidence/scenario.md": "b27d1887955fa8339726e83b8605c17951de3ee02e37ebe911dbacf7820f8e27", "03-verify-evidence/red-output.md": "3a5005712339f4920ac966454cbf8b88997cca94d80062cca6fca97bc69536ae", "03-verify-evidence/green-output.md": "5203b53f8cd3bf3119e737c968234bf6dbce09bcbf4249fa60e3d39dd04f2f65" }
+    },
+    {
+      "order": 4, "stable_id": "task4-repro-04", "skill": "independent-review", "model": "gpt-5.6-sol", "reasoning": "low",
+      "scenario_file": "04-independent-review/scenario.md", "skill_file": ".skills/independent-review/SKILL.md", "skill_sha256": "76e63cbbb3f19498e7e6c088f29bc103b2c0e3ab8547b48d24060449d1c9ee6d",
+      "red": { "scenario_sha256": "b668009cdbb51ec7a798f109f7d62b80a936ad5106a7bb4af1ff1170cdda6ca7", "input_sha256": "b668009cdbb51ec7a798f109f7d62b80a936ad5106a7bb4af1ff1170cdda6ca7" },
+      "green": { "scenario_sha256": "b668009cdbb51ec7a798f109f7d62b80a936ad5106a7bb4af1ff1170cdda6ca7", "input_sha256": "a7cfe1952614ad384eb1277ac44345201e6e3074a8118b8cc9afeee7747b88f7" },
+      "files": { "04-independent-review/scenario.md": "b668009cdbb51ec7a798f109f7d62b80a936ad5106a7bb4af1ff1170cdda6ca7", "04-independent-review/red-output.md": "f6aa947815a7826cb556a73b7b84b57259e7f527d051b0a5d075ba0728cbdd91", "04-independent-review/green-output.md": "48c54c78df5fe13ce56c6e61c3db3fc62ec8bb917f5eeeaa99cc44a3da20f460" }
+    },
+    {
+      "order": 5, "stable_id": "task4-repro-05", "skill": "security-review-with-strix", "model": "gpt-5.6-sol", "reasoning": "low",
+      "scenario_file": "05-security-review-with-strix/scenario.md", "skill_file": ".skills/security-review-with-strix/SKILL.md", "skill_sha256": "9f0cf4b11278b6f2cbd2f52f580653cbec5b5dc6529583842bdb8ff41c94f8f2",
+      "red": { "scenario_sha256": "ce60bdb08d755f5ba00929aa839a7029723135e717075c2348d20fd41b585fba", "input_sha256": "ce60bdb08d755f5ba00929aa839a7029723135e717075c2348d20fd41b585fba" },
+      "green": { "scenario_sha256": "ce60bdb08d755f5ba00929aa839a7029723135e717075c2348d20fd41b585fba", "input_sha256": "73145eb8157fe692628f9741aed37db0ccdf10903c8b8a87049b5d0aa689488b" },
+      "files": { "05-security-review-with-strix/scenario.md": "ce60bdb08d755f5ba00929aa839a7029723135e717075c2348d20fd41b585fba", "05-security-review-with-strix/red-output.md": "bad6afb44df30644b955077fbfbff7a1d1e7dd46a55e8ab8b1fc9c47b2dbf8fb", "05-security-review-with-strix/green-output.md": "ae3ef09e44f27a1b6f407fd458880c287c081a680c451f3fb31665e11fd80d04" }
+    },
+    {
+      "order": 6, "stable_id": "task4-repro-06", "skill": "scope-evaluation", "model": "gpt-5.6-sol", "reasoning": "low",
+      "scenario_file": "06-scope-evaluation/scenario.md", "skill_file": ".skills/scope-evaluation/SKILL.md", "skill_sha256": "03f1d2bdfcd6a27b4f70ae9e9fd073ca5fbca1e619893ec7c3bc54412aab9874",
+      "red": { "scenario_sha256": "9af4143d88b4878bf46e7a50f588fa0925e2fbe2645cfc986337f01661cfe76a", "input_sha256": "9af4143d88b4878bf46e7a50f588fa0925e2fbe2645cfc986337f01661cfe76a" },
+      "green": { "scenario_sha256": "9af4143d88b4878bf46e7a50f588fa0925e2fbe2645cfc986337f01661cfe76a", "input_sha256": "e6c8fd8f7698630850cdd5f6a4b644e023d0f1f5ef85a3fb11cbbae803d46d35" },
+      "files": { "06-scope-evaluation/scenario.md": "9af4143d88b4878bf46e7a50f588fa0925e2fbe2645cfc986337f01661cfe76a", "06-scope-evaluation/red-output.md": "e8b0e4ac0e800a66d0ff59c0f80f5f3da901324d7d4f4891b0c335c3c71fbe52", "06-scope-evaluation/green-output.md": "defee5f1e5938d3730f7acbd89b160b40fa63c5c6b6bb10aca5b92347f0e2d4c" }
+    },
+    {
+      "order": 7, "stable_id": "task4-repro-07", "skill": "memory-consolidation", "model": "gpt-5.6-sol", "reasoning": "low",
+      "scenario_file": "07-memory-consolidation/scenario.md", "skill_file": ".skills/memory-consolidation/SKILL.md", "skill_sha256": "b11213629e894fbd2df51b6822439304b863b06e6f5eaa220b087b26a20fab50",
+      "red": { "scenario_sha256": "a8405a2473d79474638b8fff85c6fab09c2d49e5193299d099a5c19105a019d9", "input_sha256": "a8405a2473d79474638b8fff85c6fab09c2d49e5193299d099a5c19105a019d9" },
+      "green": { "scenario_sha256": "a8405a2473d79474638b8fff85c6fab09c2d49e5193299d099a5c19105a019d9", "input_sha256": "dec3dcb8d2f6b9ecad103a3479977e86aceb5ae5b30602eb5bf8c18e7dd5fdb6" },
+      "files": { "07-memory-consolidation/scenario.md": "a8405a2473d79474638b8fff85c6fab09c2d49e5193299d099a5c19105a019d9", "07-memory-consolidation/red-output.md": "a6419f22a01d6bfe6b16a70725d7fd9e0b8855708ca70dce9b0a74a72d850c58", "07-memory-consolidation/green-output.md": "b6bf7fd4b30421405291ce078991df66b08133216a6f14bdb063cbb4ecc0bd41" }
+    }
+  ]
+}

@@ -40,3 +40,13 @@ All pressure agents were fresh/sequential `gpt-5.6-sol` runs at low reasoning. N
 - Every role and skill states capability is not authority and preserves WAIT/FAIL/CANCELLED semantics.
 - Direct Strix invocation is denied in the Claude example; the skill references pinned upstream only.
 - External actions: `NOT_EXECUTED`.
+
+## Findings remediation — 2026-08-21
+
+This section records post-implementation remediation and reproducibility validation; it does not claim that these reruns preceded the original skill files.
+
+- Structural RED: focused tests failed on reordered/equals-form force push, direct and wrapped Strix, shell hook delegation, malformed/missing/MultiEdit payloads, command contract assertions, and the absent evidence manifest.
+- Structural GREEN: canonical `classifyCommand` now denies force push independent of option ordering and denies direct Strix through native, `npx`, `uvx`, `pipx`, absolute and relative wrappers without denying documentation/echo commands. The Claude hook delegates both command and path policy and fails closed on malformed or unsupported matched payloads.
+- Skill evidence: `docs/evidence/skill-tdd/manifest.json` records seven sequential fresh `gpt-5.6-sol` low-reasoning RED/GREEN validations, stable IDs, sanitized scenarios, persisted outputs, model settings, order, time, exact skill/input/output hashes and `NOT_EXECUTED` external actions.
+- Validation 3 had one discarded GREEN attempt because it received summarized rather than exact skill content. It was rejected before advancing; a fresh exact-content GREEN passed and is the only run represented as valid.
+- Frontmatter/state enums, supervisor routing, no-direct-consequence command contracts, subprocess hook behavior, manifest order and every recorded digest are executable tests.
