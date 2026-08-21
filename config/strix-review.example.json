@@ -1,0 +1,18 @@
+{
+  "target": "local-app",
+  "target_class": "owned",
+  "environment": "test",
+  "authorization": {
+    "written": true,
+    "target": "local-app",
+    "ref": "AUTHORIZATION-RECORD-ID"
+  },
+  "clean_disposable_checkout": true,
+  "max_budget_usd": 5,
+  "max_turns": 20,
+  "max_seconds": 900,
+  "strix_ref": "2cc816781438f2993bcbb5c8cf3f693c25380142",
+  "config_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "scope_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "evidence_destination": ".state/evidence/strix/run-1"
+}
