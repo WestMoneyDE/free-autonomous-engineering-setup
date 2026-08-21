@@ -14,7 +14,7 @@ process.stdin.on('end', () => {
   if (tool === 'Bash' || tool === 'Shell') {
     if (typeof input.command !== 'string' || !input.command.trim()) return deny('shell command must be a nonempty string');
     const result = classifyCommand(input.command);
-    if (result.decision !== 'allow') return deny(result.reason);
+    if (result.decision === 'deny') return deny(result.reason);
     return;
   }
   let paths;

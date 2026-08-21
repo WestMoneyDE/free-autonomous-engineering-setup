@@ -75,9 +75,12 @@ test('Claude hook validates write and multi-edit payloads fail closed', () => {
 });
 
 test('Claude hook delegates shell command classification', () => {
-  assert.match(fs.readFileSync('.claude/settings.example.json', 'utf8'), /Bash\|Shell/);
-  for (const command of ['git push origin main --force','npx strix scan target','./bin/strix scan target']) assert.notEqual(runHook({tool_name:'Bash',tool_input:{command}}).status, 0, command);
+  const settings = fs.readFileSync('.claude/settings.example.json', 'utf8');
+  assert.match(settings, /Bash\|Shell/);
+  for (const pattern of ['Bash(git push:*)', 'Bash(gh pr:*)', 'Bash(npm run security-review:*)']) assert.ok(settings.includes(pattern), pattern);
+  for (const command of ['git push origin main --force','git push --repo=x -f origin main','git push origin main --force-with-lease=x','strix scan target','npx strix scan target','uvx strix scan target','pipx run strix scan target','./bin/strix scan target','/opt/bin/strix scan target']) assert.notEqual(runHook({tool_name:'Bash',tool_input:{command}}).status, 0, command);
   assert.equal(runHook({tool_name:'Bash',tool_input:{command:'git status --short'}}).status, 0);
+  for (const command of ['git push origin main','gh pr create --fill','npm run security-review -- --target local-app','some-unknown-binary --bounded']) assert.equal(runHook({tool_name:'Bash',tool_input:{command}}).status, 0, command);
 });
 
 test('skill TDD evidence manifest is ordered and content-addressed', () => {

@@ -50,3 +50,10 @@ This section records post-implementation remediation and reproducibility validat
 - Skill evidence: `docs/evidence/skill-tdd/manifest.json` records seven sequential fresh `gpt-5.6-sol` low-reasoning RED/GREEN validations, stable IDs, sanitized scenarios, persisted outputs, model settings, order, time, exact skill/input/output hashes and `NOT_EXECUTED` external actions.
 - Validation 3 had one discarded GREEN attempt because it received summarized rather than exact skill content. It was rejected before advancing; a fresh exact-content GREEN passed and is the only run represented as valid.
 - Frontmatter/state enums, supervisor routing, no-direct-consequence command contracts, subprocess hook behavior, manifest order and every recorded digest are executable tests.
+
+## ASK integration remediation
+
+- RED: subprocess integration showed ordinary `git push origin main` was incorrectly blocked with exit 2 even though canonical policy classifies it `ASK`.
+- GREEN: shell hook now blocks only canonical `DENY`; canonical `ALLOW` and `ASK` return zero. Host ASK patterns/default permissions remain responsible for human prompting, and hook success is explicitly not authorization.
+- Adversarial force-push orderings and direct/wrapped Strix remain nonzero. Ordinary push, PR creation, bounded security-review commands and unknown ASK-class shell commands pass the deny-only hook while settings retain explicit ASK patterns where defined.
+- Malformed schemas and unsafe Write/Edit/MultiEdit paths remain fail-closed.
