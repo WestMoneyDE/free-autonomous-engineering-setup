@@ -156,3 +156,13 @@ test('demo exercises the scoped memory loop without assurance or Strix', () => {
   assert.doesNotMatch(demo, /new AssuranceStore/);
   assert.doesNotMatch(demo, /spawn.*strix|exec.*strix/i);
 });
+
+test('line endings are pinned to LF so content-addressed evidence survives a Windows checkout', () => {
+  // Without this, core.autocrlf=true rewrites checked-out text files to CRLF and
+  // every sha256 in docs/evidence/skill-tdd/manifest.json stops matching.
+  const attributes = read('.gitattributes');
+  assert.match(attributes, /^\*\s+text=auto\s+eol=lf$/m);
+  for (const file of ['docs/evidence/skill-tdd/01-plan-work/scenario.md', 'README.md', 'scripts/init-project.mjs']) {
+    assert.ok(!read(file).includes('\r\n'), `${file} must not contain CRLF line endings`);
+  }
+});

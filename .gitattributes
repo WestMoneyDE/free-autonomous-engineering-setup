@@ -1,0 +1,3 @@
+# Content-addressed evidence manifests hash LF bytes; a CRLF checkout would
+# break tests/agent-surfaces.test.mjs on Windows. Normalize every text file.
+* text=auto eol=lf
