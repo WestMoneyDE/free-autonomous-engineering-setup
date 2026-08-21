@@ -25,6 +25,7 @@ export function createProjection({ records, purpose, audience, valid_until, scop
   const allowedKinds = new Set(scopeDecision.effective.memory_kinds);
   const allowedVersions = new Set(scopeDecision.effective.source_versions);
   const items = records.map((record) => {
+    if (record?.project !== scopeDecision.effective.project) throw new Error('projection record project denied');
     if (!allowedKinds.has(record?.kind) || !record?.visibility?.includes(audience)) throw new Error('projection record exceeds scope');
     const provenanceVersions = record?.source_provenance?.source_versions ?? [record?.source_provenance?.source_version];
     if (provenanceVersions.length === 0 || !provenanceVersions.every((version) => allowedVersions.has(version))) throw new Error('projection source version denied');

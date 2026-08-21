@@ -65,9 +65,9 @@ export class MemoryStore {
       fs.writeFileSync(tmp, goodLines.join('\n') + (goodLines.length ? '\n' : ''));
       fs.renameSync(tmp, this.path);
       this.append({
+        source_provenance: { source: 'memory-store', source_version: 'memory-store@1', kind: 'repository', recorded_at: new Date().toISOString() },
         kind: 'episodic',
         content: `MEMORY LOG RECOVERY: quarantined ${corrupt.length} corrupt trailing line(s) after a partial write`,
-        source_provenance: { source: 'memory-store', kind: 'repository', recorded_at: new Date().toISOString() },
         authority: { class: 'none', admissible_uses: [] },
         confidence: 'observed',
         retention: 'permanent',
@@ -165,9 +165,10 @@ export class MemoryStore {
     a.lineage.conflicts_with = [...new Set([...(a.lineage.conflicts_with ?? []), idB])];
     b.lineage.conflicts_with = [...new Set([...(b.lineage.conflicts_with ?? []), idA])];
     const marker = this.append({
+      ...(a.project && a.project === b.project ? { project: a.project } : {}),
       kind: 'episodic',
       content: `CONFLICT recorded between ${idA} and ${idB}: ${reason}`,
-      source_provenance: { source: 'memory-store', kind: 'repository', recorded_at: new Date().toISOString() },
+      source_provenance: { source: 'memory-store', source_version: 'memory-store@1', kind: 'repository', recorded_at: new Date().toISOString() },
       authority: { class: 'none', admissible_uses: [] },
       confidence: 'observed',
       retention: 'project',
@@ -201,10 +202,11 @@ export class MemoryStore {
     const anyContradicted = sources.some((r) => r.confidence === 'contradicted');
     const allVerified = sources.every((r) => r.confidence === 'verified');
     const confidence = anyContradicted ? 'contradicted' : (allVerified ? 'verified' : 'hypothesis');
-    const conflicts = [...new Set(sources.flatMap((r) => r.lineage.conflicts_with ?? []))].filter((c) => !ids.includes(c));
+    const conflicts = [...new Set(sources.flatMap((r) => r.lineage.conflicts_with ?? []))];
     const anySourceRevoked = sources.some((r) => r.revoked || r.authority_revoked);
     const rec = this.append({
       kind: opts.kind ?? 'semantic',
+      ...(opts.project ? { project: opts.project } : {}),
       content: summaryContent,
       source_provenance: {
         source: 'consolidation',
@@ -233,8 +235,8 @@ export class MemoryStore {
    * Derive a reusable procedure ("skill") from source records.
    * Lineage is mandatory; authority is capped at the weakest source.
    */
-  deriveProcedure(sourceIds, { content, steps, retention = 'project', visibility, sourceVersions }) {
-    const derived = this.consolidate(sourceIds, content, { kind: 'procedural', retention, visibility, sourceVersions });
+  deriveProcedure(sourceIds, { content, steps, retention = 'project', project, visibility, sourceVersions }) {
+    const derived = this.consolidate(sourceIds, content, { kind: 'procedural', retention, project, visibility, sourceVersions });
     const stored = this.records.get(derived.id);
     stored.steps = steps;
     validateProcedureRecord(stored);
@@ -267,9 +269,10 @@ export class MemoryStore {
     src.revoked = true;
     visit(sourceId);
     this.append({
+      ...(src.project ? { project: src.project } : {}),
       kind: 'episodic',
       content: `AUTHORITY REVOKED for ${sourceId} (${reason}); propagated to derived artifacts: ${affected.join(', ')}`,
-      source_provenance: { source: 'memory-store', kind: 'repository', recorded_at: new Date().toISOString() },
+      source_provenance: { source: 'memory-store', source_version: 'memory-store@1', kind: 'repository', recorded_at: new Date().toISOString() },
       authority: { class: 'none', admissible_uses: [] },
       confidence: 'observed',
       retention: 'permanent',

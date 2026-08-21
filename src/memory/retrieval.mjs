@@ -51,6 +51,7 @@ export function bm25Query(records, query, { limit = 10, includeRevoked = true, s
     results: results.map((s) => ({
       score: s.score,
       id: s.record.id,
+      project: s.record.project,
       kind: s.record.kind,
       content: s.record.content,
       source_provenance: s.record.source_provenance,
