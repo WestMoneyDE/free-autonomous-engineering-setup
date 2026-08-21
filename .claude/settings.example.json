@@ -1,0 +1,30 @@
+{
+  "_note": "Thin Claude adapter; canonical policy is in root surfaces and src/policy/permissions.mjs.",
+  "permissions": {
+    "deny": [
+      "Bash(git push --force:*)",
+      "Bash(git push --force-with-lease:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(npm publish:*)",
+      "Bash(strix:*)",
+      "Read(**/.env*)",
+      "Read(**/.ssh/**)",
+      "Edit(**/.env*)",
+      "Write(**/.env*)",
+      "Edit(**/.state/assurance/**)",
+      "Write(**/.state/assurance/**)"
+    ],
+    "ask": [
+      "Bash(git push:*)",
+      "Bash(gh pr:*)",
+      "Bash(npm run security-review:*)"
+    ],
+    "allow": ["Read", "Grep", "Glob", "Bash(git status:*)", "Bash(git diff:*)", "Bash(npm test:*)"]
+  },
+  "hooks": {
+    "PreToolUse": [{
+      "matcher": "Write|Edit|MultiEdit|Bash|Shell",
+      "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/protect-sensitive.mjs\"" }]
+    }]
+  }
+}

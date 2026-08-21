@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { WORK_ORDER_STATES, CAPABILITY_STATUSES } from '../src/schemas/schemas.mjs';
+import { WORK_ORDER_STATES, CAPABILITY_STATUSES, SCOPE_VERDICTS } from '../src/schemas/schemas.mjs';
 import { buildSchemaDocument } from '../scripts/export-schemas.mjs';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -43,6 +43,36 @@ test('spec/state-machine.json states equal the schema enum exactly', () => {
 test('exported JSON Schema document is not stale', () => {
   const onDisk = JSON.parse(read('spec/schemas/records.schema.json'));
   assert.deepEqual(onDisk, buildSchemaDocument(), 'run: npm run export-schemas');
+});
+
+test('exported JSON Schema includes scope runtime enums and records', () => {
+  const schema = buildSchemaDocument();
+  assert.deepEqual(schema.$defs.enums.scopeVerdicts, SCOPE_VERDICTS);
+  assert.ok(schema.$defs.ScopeContract);
+  assert.ok(schema.$defs.ScopeDecision);
+});
+
+test('scope schema expressible constraints reject the same adversarial values as runtime', () => {
+  const schema = buildSchemaDocument().$defs.ScopeContract;
+  const pathPattern = new RegExp(schema.properties.include_paths.items.pattern, 'u');
+  const timestampPattern = new RegExp(schema.properties.valid_from.pattern, 'u');
+  const trimmedPattern = new RegExp(schema.properties.project.pattern, 'u');
+  assert.equal(pathPattern.test('src/**x'), false);
+  assert.equal(pathPattern.test('../src/**'), false);
+  assert.equal(timestampPattern.test('2026-08-21 00:00:00Z'), false);
+  assert.equal(timestampPattern.test('2026-08-21T01:00:00+01:00'), true);
+  assert.equal(trimmedPattern.test(' project'), false);
+  assert.equal(trimmedPattern.test('project '), false);
+  assert.ok(schema.properties.roles.items.enum.includes('builder'));
+  assert.ok(!schema.properties.roles.items.enum.includes('invented-role'));
+  assert.ok(schema.properties.memory_kinds.items.enum.includes('semantic'));
+  assert.ok(schema.properties.retention_classes.items.enum.includes('project'));
+});
+
+test('scope schema names runtime-only cross-field invariants', () => {
+  const annotations = buildSchemaDocument().$defs.ScopeContract['x-runtime-invariants'];
+  assert.deepEqual(annotations, ['parameter_bounds.min<=max', 'valid_from<valid_until', 'timestamp-calendar-validity']);
+  assert.deepEqual(buildSchemaDocument().$defs.ScopeDecision['x-runtime-invariants'], ['digest=sha256(canonicalJson(effective))', 'null-effective-digest=sha256(canonicalJson(null))']);
 });
 
 test('CAPABILITIES.md exists, uses the closed status vocabulary, and never rates above evidence', () => {
@@ -102,4 +132,27 @@ test('R2-08: hero asset must not claim unimplemented features (capability contra
   for (const re of forbiddenLabels) {
     assert.doesNotMatch(hero, re, `hero must not claim dynamic/unimplemented capability matching ${re}`);
   }
+});
+
+test('repository exposes the complete canonical runtime contract', () => {
+  for (const file of ['.agents/manifest.json', '.skills/security-review-with-strix/SKILL.md', '.commands/scope-check.md', '.claude/README.md']) assert.ok(fs.existsSync(path.join(root, file)));
+  const publicText = ['README.md', 'README.de.md', 'CAPABILITIES.md'].map(read).join('\n');
+  assert.match(publicText, /Ömer Coskun/);
+  assert.match(publicText, /Autonomous Engineering Reference (Architecture )?V1/);
+});
+
+test('public docs state identity lineage capabilities and security non-claims', () => {
+  const files = ['README.md', 'README.de.md', 'CAPABILITIES.md', 'docs/ARCHITECTURE.md', 'docs/THREAT-MODEL.md'];
+  const text = files.map(read).join('\n');
+  for (const marker of ['Ömer Coskun', 'https://www.linkedin.com/in/oemer-coskun53', 'Autonomous Engineering Reference V1', 'Memory Factory', 'Scope Engine', '2cc816781438f2993bcbb5c8cf3f693c25380142', 'Apache-2.0']) assert.ok(text.includes(marker), `missing ${marker}`);
+  assert.match(text, /written (target )?authorization/i);
+  assert.match(text, /no real Strix (scan|execution)|Strix.*NOT_EXECUTED/i);
+  assert.match(text, /unattended continuous operation.*NOT_CLAIMED|NOT_CLAIMED.*unattended continuous operation/i);
+});
+
+test('demo exercises the scoped memory loop without assurance or Strix', () => {
+  const demo = read('examples/demo-project/run-demo.mjs');
+  for (const symbol of ['intersectScopes', 'scopeDecision', 'scope_digest', 'MemoryFactory', '.retrieve(', '.project(', 'READY_FOR_REVIEW', 'DONE']) assert.ok(demo.includes(symbol), `demo missing ${symbol}`);
+  assert.doesNotMatch(demo, /new AssuranceStore/);
+  assert.doesNotMatch(demo, /spawn.*strix|exec.*strix/i);
 });

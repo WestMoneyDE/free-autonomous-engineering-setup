@@ -108,6 +108,9 @@ CHECKPOINT / COMPLETE
 | Supervision | `src/supervisor/*` | `tests/state-machine.test.mjs`, `tests/supervisor.test.mjs` |
 | Durable state | `src/state/event-store.mjs` | `tests/supervisor.test.mjs`, `tests/idempotency.test.mjs` |
 | Memory fabric | `src/memory/*` | `tests/memory.test.mjs` |
+| Memory Factory | `src/memory/factory.mjs`, `src/memory/projection.mjs` | `tests/memory-factory.test.mjs` |
+| Scope Engine | `src/policy/scope-engine.mjs` | `tests/scope-engine.test.mjs` |
+| Canonical agent surfaces | `.agents/`, `.skills/`, `.commands/`, `.claude/` | `tests/agent-surfaces.test.mjs` |
 | Authority / assurance | `src/policy/approval.mjs` | `tests/approval.test.mjs` |
 | Effect boundary | `src/policy/effect-registry.mjs`, `effect-gate.mjs`, `executor.mjs` | `tests/effect-gate.test.mjs` |
 | Policy engine | `src/policy/permissions.mjs` | `tests/security.test.mjs` |
@@ -122,6 +125,36 @@ closed, agent claims only tighten) → single executor (one-shot, digest-bound,
 consequential actions is out of contract and defended in depth (gate nonces,
 command classification, harness adapters); see `docs/THREAT-MODEL.md` §15 for
 the honest limits of in-process mediation.
+
+Strix preflight is explicitly proposal-side: caller ownership, authorization
+and checkout fields remain untrusted claims. It emits
+`execution_authorized: false` plus a canonical proposal/digest binding target,
+environment, scope/config digests, pin, budgets, evidence destination and
+occurrence. Only the independent AssuranceStore and EffectGate can approve the
+exact proposal; this repository includes no Strix launcher or executor adapter.
+
+## Memory Factory and Scope Engine
+
+The **Memory Factory** is the single scoped entry point into the memory fabric.
+Every ingest, retrieval, consolidation and projection is bound to a project and
+to a validated scope decision, so provenance, conflicts, supersession and
+revocation cannot be lost by taking a shortcut around the store. It stays
+proposal-side: no factory call can produce a grant, credential, scope or
+approval token.
+
+The **Scope Engine** answers *what may be touched*, in the same fail-closed
+style the effect gate answers *what may be done*. Scopes are typed and
+restrictive: intersection narrows and never widens, a permissive `ALLOW`/
+`NARROW` verdict without a matching effective contract or with a mismatched
+canonical `scope_digest` is rejected rather than repaired, and dispatch binds
+the digest before any lease mutation. Retrieval and projection carry the same
+digest, so scope violations surface as explicit unresolved dimensions instead of
+silently widened context.
+
+Strix review is layered on top of both: the pinned upstream procedure
+(`usestrix/strix@2cc816781438f2993bcbb5c8cf3f693c25380142`, `Apache-2.0`) contributes findings as
+proposals only, and requires written target authorization plus independent
+approval before any real execution — which this release does not perform.
 
 ## Why the separation matters
 

@@ -10,6 +10,7 @@
 - Base commit/ref: `<sha/ref>`
 - Routing intent: `<route>`
 - Risk/authority class: `<class>`
+- Effective scope digest: `<canonical scope_digest or none>`
 
 ## Changes
 
@@ -22,6 +23,7 @@
 | Tests | `<...>` | `PASS / FAIL / NOT_RUN` |
 | Type/lint/build | `<...>` | `<...>` |
 | Security | `<...>` | `<...>` |
+| Strix security review | `<preflight only / NOT_EXECUTED>` | `<claim status; never authority>` |
 | Independent review | `<...>` | `<...>` |
 
 ## Routing / provider outcome
@@ -45,6 +47,7 @@
 - Authority reference: `<none or approval>`
 - Outcome: `<SUCCESS / FAIL / CANCELLED / BLOCKED / NOT_EXECUTED>`
 - Retried automatically: `NO`
+- Real Strix scan executed: `NO (NOT_EXECUTED) | YES + authorization reference`
 
 ## Current state
 

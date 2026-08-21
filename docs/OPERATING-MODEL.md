@@ -28,6 +28,15 @@ Run the smallest complete evidence set appropriate to the project: typecheck, li
 
 After implementation, Hermes transitions to `READY_FOR_REVIEW` and dispatches a separate reviewer profile/session. The reviewer reads the actual diff and evidence. Verdicts include `PASS`, `CHANGES_REQUESTED`, `RISK_ESCALATION` or `FOUNDER_REQUIRED`.
 
+## 7b. Security review
+
+Security-sensitive changes route to the Security Reviewer role, which follows
+the pinned `usestrix/strix` procedure as a **proposal**: findings and coverage
+are validated strictly, the preflight always reports
+`execution_authorized: false`, and a real scan additionally requires written
+target authorization plus an independent approval. A review claim is never a
+grant.
+
 ## 8. Rework loop is bounded
 
 `CHANGES_REQUESTED` returns only the concrete findings to an implementation worker. Repeated failure triggers diagnosis/escalation; it does not create an infinite loop.

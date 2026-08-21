@@ -62,6 +62,26 @@ Push/merge/publish; deploy/production changes; external messages/submissions; pa
 
 Secret/private-data exfiltration; permission bypass; force-push protected history without explicit authority; committing credentials; disabling safety controls to make a task pass; self-created authority; unrestricted self-copying/covert persistence/shutdown resistance.
 
+## Scoped work and canonical surfaces
+
+Every dispatch carries a typed, restrictive scope. Scopes intersect and never
+widen; the exact canonical `scope_digest` is bound before any lease mutation,
+and a permissive scope verdict without a matching effective contract is denied,
+not repaired. Memory access runs through the Memory Factory, which is
+proposal-side only and can never mint a grant, credential, scope or approval
+token.
+
+The canonical agent surfaces are `.agents/` (role profiles), `.skills/`
+(procedures), `.commands/` (supervisor-routed entry points) and `.claude/`
+(thin adapter). No surface holds direct consequential authority; commands route
+through the supervisor.
+
+Security review follows the pinned `usestrix/strix@2cc816781438f2993bcbb5c8cf3f693c25380142`
+procedure (`Apache-2.0`) as an authorization-gated contract. The preflight is
+never authorization: a real run requires exact written target authorization,
+independent approval and an effect-gate ALLOW. No real Strix execution ships
+here (`NOT_EXECUTED`).
+
 ## Work cycle
 
 ```text

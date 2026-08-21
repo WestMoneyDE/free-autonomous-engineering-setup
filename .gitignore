@@ -26,6 +26,7 @@ Thumbs.db
 .idea/
 
 # Generated logs / temporary outputs
+.superpowers/
 logs/
 tmp/
 *.log

@@ -33,6 +33,24 @@ Validated against the public `release/v3.8.50` documentation available on 2026-0
 
 Do not hardcode provider counts, free-token totals or provider pricing into operational policy. Those are dynamic catalog data.
 
+## Strix (security review)
+
+Repository: https://github.com/usestrix/strix
+
+```text
+usestrix/strix@%s
+license = Apache-2.0
+integration = authorization-gated Security Reviewer procedure; no vendored code
+```
+
+Reused as a **pinned procedure contract**, not as a dependency: no Strix source
+is vendored, no executable is installed by this repository and `scripts/init-project.mjs`
+explicitly refuses to install a `strix` entry. The preflight
+(`src/security/strix-review.mjs`) always returns `execution_authorized: false`;
+a real run additionally requires exact written target authorization, an
+independent AssuranceStore approval and an effect-gate ALLOW. Status in this
+release: no real Strix execution — `NOT_EXECUTED`.
+
 ## AI Engineering Stack
 
 Repository: https://github.com/WestMoneyDE/ai-engineering-stack

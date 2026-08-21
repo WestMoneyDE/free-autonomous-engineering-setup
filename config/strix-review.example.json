@@ -1,0 +1,24 @@
+{
+  "target": "local-app",
+  "target_class": "owned",
+  "environment": "test",
+  "authorization": {
+    "written": true,
+    "target": "local-app",
+    "ref": "AUTHORIZATION-RECORD-ID"
+  },
+  "_authority_boundary": "Ownership, authorization and checkout values are untrusted claims. Preflight only creates a digest-bound EffectProposal; independent AssuranceStore approval and EffectGate evaluation are still required. No Strix executor is included.",
+  "clean_disposable_checkout": true,
+  "max_budget_usd": 5,
+  "max_turns": 20,
+  "max_seconds": 900,
+  "strix_ref": "2cc816781438f2993bcbb5c8cf3f693c25380142",
+  "config_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "scope_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "evidence_destination": ".state/evidence/strix/run-1",
+  "occurrence": 1,
+  "work_order_id": "WO-STRIX-1",
+  "proposed_by": "supervisor:hermes",
+  "created_at": "2026-08-21T10:00:00.000Z",
+  "expires_at": "2026-08-21T10:15:00.000Z"
+}

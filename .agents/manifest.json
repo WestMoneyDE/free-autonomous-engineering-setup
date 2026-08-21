@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "roles": {
+    "planner": { "file": ".agents/planner.md", "states": ["PLANNED"], "write": ["work-order"] },
+    "builder": { "file": ".agents/builder.md", "states": ["READY", "CHANGES_REQUESTED"], "write": ["scoped-repository", "evidence"] },
+    "independent-reviewer": { "file": ".agents/independent-reviewer.md", "states": ["READY_FOR_REVIEW"], "write": ["review-verdict"] },
+    "security-reviewer": { "file": ".agents/security-reviewer.md", "states": ["READY_FOR_REVIEW"], "write": ["security-verdict", "evidence"] },
+    "memory-curator": { "file": ".agents/memory-curator.md", "states": ["IN_PROGRESS"], "write": ["memory-proposal"] }
+  }
+}

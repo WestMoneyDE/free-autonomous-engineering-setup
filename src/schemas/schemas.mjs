@@ -5,6 +5,8 @@
 //   UNKNOWN != FALSE, UNKNOWN != NOT_EXECUTED, FAIL != SUCCESS,
 //   TRANSPORT_FAILURE != NEGATIVE_RESULT, NOT_RUN != PASS.
 
+import { normalizeScopeContract, validateScopeDecisionRuntime } from '../policy/scope-engine.mjs';
+
 export const WORK_ORDER_STATES = Object.freeze([
   'PLANNED', 'READY', 'IN_PROGRESS', 'READY_FOR_REVIEW', 'CHANGES_REQUESTED',
   'BLOCKED', 'WAIT_PROVIDER', 'FOUNDER_REQUIRED', 'APPROVED_FOR_EXTERNAL_ACTION',
@@ -46,6 +48,7 @@ export const EFFECT_REVERSIBILITY = Object.freeze(['reversible', 'partially-reve
 export const GATE_VERDICTS = Object.freeze(['ALLOW', 'REPAIR', 'DEFER', 'DENY', 'FALLBACK']);
 export const CAPABILITY_STATUSES = Object.freeze(['OPERATIONAL', 'IMPLEMENTED', 'SPECIFIED_ONLY', 'PLANNED', 'NOT_APPLICABLE', 'NOT_CLAIMED']);
 export const BUDGET_POLICIES = Object.freeze(['free-preferred', 'hard-free', 'cheap-preferred', 'hard-request-cap', 'premium-allowed']);
+export const SCOPE_VERDICTS = Object.freeze(['ALLOW', 'NARROW', 'DEFER', 'DENY']);
 
 class ValidationError extends Error {
   constructor(type, issues) {
@@ -357,6 +360,24 @@ export function validateRoutingDecision(o) {
   });
 }
 
+export function validateScopeContract(o) {
+  try {
+    normalizeScopeContract(o);
+    return o;
+  } catch (error) {
+    throw new ValidationError('ScopeContract', [error.message]);
+  }
+}
+
+export function validateScopeDecision(o) {
+  try {
+    validateScopeDecisionRuntime(o);
+    return o;
+  } catch (error) {
+    throw new ValidationError('ScopeDecision', [error.message]);
+  }
+}
+
 export const validators = Object.freeze({
   WorkOrder: validateWorkOrder,
   ProjectState: validateProjectState,
@@ -377,4 +398,6 @@ export const validators = Object.freeze({
   ExecutionResult: validateExecutionResult,
   CapabilityRecord: validateCapabilityRecord,
   RoutingDecision: validateRoutingDecision,
+  ScopeContract: validateScopeContract,
+  ScopeDecision: validateScopeDecision,
 });

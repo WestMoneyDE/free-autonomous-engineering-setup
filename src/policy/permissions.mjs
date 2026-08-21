@@ -3,6 +3,7 @@
 // adapters (adapters/claude, DSH plugin config, future harnesses) translate
 // it into their own hook formats. Policy is enforced in code, not prompts.
 import path from 'node:path';
+import { evaluateScopeRequest } from './scope-engine.mjs';
 
 export const SENSITIVE_PATH_PATTERNS = Object.freeze([
   /(^|\/)\.env($|\.|\/)/i,
@@ -16,12 +17,29 @@ export const SENSITIVE_PATH_PATTERNS = Object.freeze([
 ]);
 
 const DENY_COMMANDS = Object.freeze([
-  /^git\s+push\s+(--force|-f|--force-with-lease)\b/,
   /^git\s+reset\s+--hard\b/,
   /^npm\s+publish\b/,
   /^terraform\s+(apply|destroy)\b/,
   /(^|\s)rm\s+-rf\s+\/(\s|$)/,
 ]);
+
+const shellTokens = (command) => command.match(/"[^"]*"|'[^']*'|\S+/g)?.map((token) => token.replace(/^(['"])(.*)\1$/, '$2')) ?? [];
+const basename = (token) => token.replaceAll('\\', '/').split('/').at(-1)?.toLowerCase();
+
+function isForcePush(tokens) {
+  if (basename(tokens[0] ?? '') !== 'git') return false;
+  const pushIndex = tokens.findIndex((token, index) => index > 0 && token === 'push');
+  if (pushIndex < 0) return false;
+  return tokens.some((token) => token === '-f' || /^--force(?:=(?:true|1)?)?$/i.test(token) || /^--force-with-lease(?:=.*)?$/i.test(token));
+}
+
+function isDirectStrix(tokens) {
+  const first = basename(tokens[0] ?? '');
+  if (first === 'strix' || first === 'strix.exe') return true;
+  if (['npx', 'uvx'].includes(first)) return basename(tokens[1] ?? '') === 'strix';
+  if (first === 'pipx') return tokens[1] === 'run' && basename(tokens[2] ?? '') === 'strix';
+  return false;
+}
 
 const ASK_COMMANDS = Object.freeze([
   /^git\s+push\b/,
@@ -52,7 +70,7 @@ export function classifyWritePath(root, targetPath) {
   if (resolved !== resolvedRoot && !resolved.startsWith(resolvedRoot + path.sep)) {
     return { decision: 'deny', reason: `path traversal outside repository root: ${targetPath}` };
   }
-  const rel = path.relative(resolvedRoot, resolved) || '.';
+  const rel = (path.relative(resolvedRoot, resolved) || '.').replaceAll(path.sep, '/');
   // .env.example is the one intentional exception (committed template).
   if (/(^|\/)\.env\.example$/.test(rel)) return { decision: 'allow', reason: 'env example template' };
   for (const p of SENSITIVE_PATH_PATTERNS) {
@@ -67,10 +85,35 @@ export function classifyWritePath(root, targetPath) {
 /** Classify a shell command: deny > ask > allow > ask (default-unknown = ask). */
 export function classifyCommand(command) {
   const c = command.trim();
+  const tokens = shellTokens(c);
+  if (isForcePush(tokens)) return { decision: 'deny', reason: 'force push denied by canonical policy' };
+  if (isDirectStrix(tokens)) return { decision: 'deny', reason: 'direct Strix execution requires the separate authorized review gate' };
   for (const p of DENY_COMMANDS) if (p.test(c)) return { decision: 'deny', reason: `denied by policy pattern ${p}` };
   for (const p of ASK_COMMANDS) if (p.test(c)) return { decision: 'ask', reason: `externally visible / hard to reverse: ${p}` };
   for (const p of ALLOW_COMMANDS) if (p.test(c)) return { decision: 'allow', reason: 'routine local reversible operation' };
   return { decision: 'ask', reason: 'unclassified command defaults to ask (fail closed)' };
+}
+
+function canonicalRepoPath(root, targetPath) {
+  const resolvedRoot = path.resolve(root);
+  const resolved = path.resolve(resolvedRoot, targetPath.replaceAll('\\', '/'));
+  if (resolved !== resolvedRoot && !resolved.startsWith(resolvedRoot + path.sep)) return null;
+  return (path.relative(resolvedRoot, resolved) || '.').replaceAll(path.sep, '/');
+}
+
+export function classifyScopedOperation({ root, path: requestedPath, command, scopeDecision, request }) {
+  const checked = evaluateScopeRequest(scopeDecision, request);
+  if (checked.verdict === 'DENY' || checked.verdict === 'DEFER') {
+    return { decision: 'deny', reason: `scope denied: ${(checked.reasons ?? ['unresolved scope']).join('; ')}` };
+  }
+  const scopedPath = canonicalRepoPath(root, request.path);
+  const suppliedPath = canonicalRepoPath(root, requestedPath);
+  if (scopedPath === null || suppliedPath === null || scopedPath !== suppliedPath) {
+    return { decision: 'deny', reason: 'scope denied: path mismatch between scoped request and classified operation' };
+  }
+  const pathDecision = classifyWritePath(root, scopedPath);
+  if (pathDecision.decision !== 'allow') return pathDecision;
+  return classifyCommand(command);
 }
 
 /** Scan text for credential-looking content before it leaves the boundary. */

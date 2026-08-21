@@ -1,5 +1,7 @@
 # Capability inventory
 
+Public identity: **Ömer Coskun** — [LinkedIn](https://www.linkedin.com/in/oemer-coskun53). Canonical lineage: **Autonomous Engineering Reference V1**, the public evolution of AI Engineering Stack.
+
 Status vocabulary (closed; enforced by `tests/consistency.test.mjs`):
 `OPERATIONAL` — runs end-to-end and is exercised in CI · `IMPLEMENTED` — code/config exists **and** is covered by tests · `SPECIFIED_ONLY` — documented/configured, no verified runtime behavior · `PLANNED` · `NOT_APPLICABLE` · `NOT_CLAIMED`.
 
@@ -28,17 +30,22 @@ Status vocabulary (closed; enforced by `tests/consistency.test.mjs`):
 | Evidence ledger: exact outcome semantics (FAIL≠PASS, NOT_RUN≠PASS, UNKNOWN preserved), content hashes, sha256 manifests, completion gate | IMPLEMENTED | src/evidence/ledger.mjs + src/evidence/hashing.mjs | tests/evidence.test.mjs | LOGOS-1 evidence discipline |
 | Structured schemas + runtime validators for all 19 record types + generated JSON Schema export | IMPLEMENTED | src/schemas/schemas.mjs + spec/schemas/records.schema.json | tests/schemas.test.mjs, tests/consistency.test.mjs | Runtime validation chosen over compile-time types at the trust boundary |
 | Skills lock v2: commit-SHA pins required, optional content hash, explicit MISSING_UPSTREAM handling | IMPLEMENTED | src/skills/lock.mjs + config/skills-lock.example.json | tests/skills.test.mjs | No third-party skill content vendored (license-clean) |
-| Project state bootstrap: dry-run default, never overwrites, idempotent | IMPLEMENTED | scripts/init-project.mjs | tests/installer.test.mjs | ai-engineering-stack installer discipline |
+| Memory Factory: single scoped entry point for ingest, retrieval, consolidation and projection with provenance and digest validation | IMPLEMENTED | src/memory/factory.mjs + src/memory/projection.mjs | tests/memory-factory.test.mjs, tests/memory.test.mjs | Proposal-side only; cannot mint grants, credentials, scopes or approval tokens |
+| Scope Engine: typed restrictive scopes, intersection-only narrowing, canonical digest binding before lease mutation, fail-closed permissive decisions | IMPLEMENTED | src/policy/scope-engine.mjs + src/supervisor/dispatcher.mjs | tests/scope-engine.test.mjs, tests/supervisor.test.mjs | Scopes never widen; missing or mismatched effective contract is a denial, not a repair |
+| Canonical agent surfaces (.agents/.skills/.commands/.claude) with scope gating and thin Claude adapter | IMPLEMENTED | .agents/, .skills/, .commands/, .claude/ | tests/agent-surfaces.test.mjs | Commands route through the supervisor; no surface holds direct consequential authority |
+| Strix review proposal contract: non-authoritative claim validation, exact effect-proposal digest binding and strict result interpretation | IMPLEMENTED | src/security/strix-review.mjs + effect registry metadata; no launcher/executor integration | tests/strix-review.test.mjs, tests/effect-gate.test.mjs | Preflight always returns `execution_authorized: false`; independent AssuranceStore/EffectGate approval remains required |
+| Safe canonical runtime installation: dry-run default, exclusive no-overwrite apply, source/version/SHA-256 manifest, traversal/symlink containment | IMPLEMENTED | scripts/init-project.mjs | tests/installer.test.mjs | Explicit allowlist excludes credentials, Strix executable/config secrets and authority writes |
 | End-to-end supervised loop, local and model-free (PLANNED→…→DONE with leases, review, recovery check) | OPERATIONAL | examples/demo-project/run-demo.mjs | `npm run demo` (executed in CI) | — |
 | Fresh-agent recovery from repository state alone | IMPLEMENTED | src/cli.mjs (`state`, `verify-recovery`) + examples/demo-project | tests/supervisor.test.mjs (replay==snapshot) | — |
 | Documentation/state-vocabulary consistency enforcement | IMPLEMENTED | tests/consistency.test.mjs | tests/consistency.test.mjs (self-executing) | Generalization of LOGOS-1 push protocol |
 | Live DSH ↔ OmniRoute integration (running gateway + worker) | SPECIFIED_ONLY | config/dsh-omniroute.settings.example.yaml, adapters/deepseek-harness/ | — | Requires the user to run both upstreams; validated against public docs of 2026-08-20, not by CI |
 | Claude Code adapter (optional) | SPECIFIED_ONLY | adapters/claude/ | — | Example only; core is harness-neutral |
 | Hermes dispatching real DSH worker processes automatically | SPECIFIED_ONLY | docs/HERMES-SUPERVISOR.md §runtime | — | The runtime validates/persists; process-spawning glue is intentionally left to the operator |
+| Live Strix security scan execution against a real target | SPECIFIED_ONLY | src/security/strix-review.mjs + docs/UPSTREAMS.md (usestrix/strix@2cc816781438f2993bcbb5c8cf3f693c25380142, Apache-2.0) | — | No Strix code vendored, no executable installed, no real Strix execution in this release (NOT_EXECUTED); requires written target authorization plus independent approval and an effect-gate ALLOW |
 | Mobile/Telegram approvals | NOT_CLAIMED | — | — | Approval API is transport-agnostic; no mobile channel ships here |
 | Multi-tenancy / PostgreSQL RLS / RBAC server profile | NOT_APPLICABLE | — | — | Local-first single-operator core; documented as an optional team/server profile in docs/OPERATING-MODEL.md |
 | Vector/semantic retrieval index | NOT_CLAIMED | — | — | BM25 is the deterministic core; a vector index would be an accelerator, never source of truth |
-| Unattended continuous operation | NOT_CLAIMED | — | — | Activation is a separate, testable safety decision (per ai-engineering-stack) |
+| Unattended continuous operation | NOT_CLAIMED | — | — | Activation is a separate, testable safety decision (per ai-engineering-stack); no loop in this repository runs without a human-initiated start |
 | Hard $0 spend guarantee via `auto/coding:free` | NOT_CLAIMED | — | — | Upstream tier filter is fail-open; see docs/ROUTING.md hard-free patterns |
 | Scientific LOGOS results (Γ theory, CPV, consciousness research, benchmarks) | NOT_CLAIMED | — | — | Deliberately excluded; engineering mechanisms only (NOTICE.md) |
 

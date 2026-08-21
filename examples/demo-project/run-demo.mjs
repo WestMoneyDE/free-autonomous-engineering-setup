@@ -16,6 +16,9 @@ import { workOrderHash } from '../../src/evidence/hashing.mjs';
 import { acceptWorkerReturn, acceptReviewVerdict } from '../../src/workers/contracts.mjs';
 import { evaluateProposal } from '../../src/supervisor/state-machine.mjs';
 import { validateWorkOrder } from '../../src/schemas/schemas.mjs';
+import { intersectScopes } from '../../src/policy/scope-engine.mjs';
+import { MemoryStore } from '../../src/memory/store.mjs';
+import { MemoryFactory } from '../../src/memory/factory.mjs';
 
 const keep = process.argv.includes('--keep');
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'faes-demo-'));
@@ -44,6 +47,14 @@ const workOrder = validateWorkOrder({
   version: 1,
 });
 const woHash = workOrderHash(workOrder);
+const scopeDecision = intersectScopes([{
+  project, include_paths: ['src/**', 'tests/**'], exclude_paths: ['.state/assurance/**'],
+  roles: ['builder', 'reviewer'], tools: ['read', 'edit', 'test'], memory_kinds: ['episodic', 'semantic'], audiences: ['project'],
+  capabilities: ['local-edit', 'local-test'], targets: ['repository'], parameter_bounds: { changed_files: { min: 0, max: 2 } },
+  budgets: { cost_usd: 0, tokens: 100000, seconds: 3600, attempts: 3 }, valid_from: '2026-08-21T00:00:00.000Z', valid_until: '2027-08-21T00:00:00.000Z',
+  max_occurrences: 2, externality: 'internal', reversibility: 'reversible', approval_required: false,
+  data_classes: ['project'], retention_classes: ['project'], source_versions: ['demo@1'],
+}]);
 registry.activateWorkOrder(project, workOrder.id);
 log('WORK ORDER', `${workOrder.id}: ${workOrder.objective}\nhash ${woHash}`);
 
@@ -53,7 +64,7 @@ log('STATE', JSON.stringify(registry.state(project)));
 const store = new EventStore(path.join(root, project, '.state'));
 const leases = new LeaseManager({ store });
 const dispatcher = new Dispatcher({ leases, store });
-const packet = dispatcher.dispatch({ project, workOrder, expectedHash: woHash, state: 'READY', workerClass: 'builder', actor: 'builder:worker-a' });
+const packet = dispatcher.dispatch({ project, workOrder, expectedHash: woHash, state: 'READY', workerClass: 'builder', actor: 'builder:worker-a', scopeDecision });
 registry.transition(project, 'dispatch_builder', { guards: { lease_acquired: true, work_order_hash_matches: true, budget_policy_valid: true }, actor: 'supervisor' });
 log('DISPATCH', `builder lease ${packet.lease_key} token ${packet.fencing_token}`);
 
@@ -81,8 +92,31 @@ registry.transition(project, 'worker_returned', { guards: { worker_result_valid:
 leases.release(packet.lease_key, 'builder:worker-a', packet.fencing_token);
 log('BUILDER RETURN', `proposed ${builderReturn.proposed_next_state}; supervisor validated and persisted`);
 
+// --- scoped memory: the Memory Factory is the only entry into the fabric ---
+const memory = new MemoryFactory(new MemoryStore(path.join(root, project, '.state', 'memory')), { project });
+const note = memory.ingest({
+  project,
+  kind: 'semantic',
+  content: 'greet() must stay deterministic: no locale lookup and no clock read',
+  source_provenance: { source: 'work-order', source_version: 'demo@1', kind: 'repository', recorded_at: new Date().toISOString() },
+  authority: { class: 'observation', admissible_uses: ['inform-proposal'] },
+  confidence: 'observed',
+  retention: 'project',
+  visibility: ['project'],
+});
+const recalled = memory.retrieve('deterministic greet', scopeDecision);
+const projection = memory.project({
+  record_ids: [note.id], purpose: 'independent review packet', audience: 'project',
+  valid_until: '2027-01-01T00:00:00.000Z', scopeDecision,
+});
+const scopeBound = projection.scope_digest === scopeDecision.digest;
+log('MEMORY', `scope_digest ${scopeDecision.digest}
+retrieved=${recalled.ok ? recalled.results.length : `DENIED (${recalled.note})`} projection=${scopeBound ? 'SCOPE-BOUND' : 'MISMATCH'}`);
+// Memory stays proposal-side: no AssuranceStore is constructed here and no
+// security scan is executed; a remembered note can never become authority.
+
 // --- independent review ---
-const reviewPacket = dispatcher.dispatch({ project, workOrder, expectedHash: woHash, state: 'READY_FOR_REVIEW', workerClass: 'reviewer', actor: 'reviewer:worker-b' });
+const reviewPacket = dispatcher.dispatch({ project, workOrder, expectedHash: woHash, state: 'READY_FOR_REVIEW', workerClass: 'reviewer', actor: 'reviewer:worker-b', scopeDecision });
 const verdict = acceptReviewVerdict({
   id: 'RV-0001',
   work_order_id: workOrder.id,
@@ -109,7 +143,7 @@ const recoveryOk = registry.verifyRecovery(project);
 const completion = ledger.supportsCompletion(workOrder.id, ['test', 'review']);
 log('FINAL', `state=${finalState.status} recovery=${recoveryOk ? 'REPLAY==SNAPSHOT' : 'MISMATCH'} completionEvidence=${completion.ok ? 'SATISFIED' : completion.unmet}`);
 
-if (finalState.status !== 'DONE' || !recoveryOk || !completion.ok) {
+if (finalState.status !== 'DONE' || !recoveryOk || !completion.ok || !recalled.ok || recalled.results.length === 0 || !scopeBound) {
   console.error('DEMO FAILED');
   process.exit(1);
 }

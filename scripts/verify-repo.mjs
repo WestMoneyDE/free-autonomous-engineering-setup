@@ -24,6 +24,10 @@ const required = [
   'adapters/README.md','adapters/deepseek-harness/README.md',
   'examples/demo-project/run-demo.mjs',
   '.github/workflows/validate.yml','assets/free-autonomous-engineering-setup-hero.svg',
+  '.agents/manifest.json','.agents/builder.md','.agents/independent-reviewer.md','.agents/memory-curator.md','.agents/planner.md','.agents/security-reviewer.md',
+  '.skills/build-scoped-change/SKILL.md','.skills/independent-review/SKILL.md','.skills/memory-consolidation/SKILL.md','.skills/plan-work/SKILL.md','.skills/scope-evaluation/SKILL.md','.skills/security-review-with-strix/SKILL.md','.skills/verify-evidence/SKILL.md',
+  '.commands/build.md','.commands/checkpoint.md','.commands/memory-consolidate.md','.commands/plan.md','.commands/review.md','.commands/scope-check.md','.commands/security-review.md','.commands/verify.md',
+  '.claude/README.md','.claude/hooks/protect-sensitive.mjs','.claude/settings.example.json',
 ];
 const failures = [];
 const read = p => fs.readFileSync(path.join(root,p),'utf8');
@@ -59,6 +63,24 @@ if (fs.existsSync(path.join(root,'spec/state-machine.json'))) {
 }
 if (fs.existsSync(path.join(root,'.env'))) failures.push('root .env must not be committed');
 if (fs.existsSync(path.join(root,'config/.env'))) failures.push('config/.env must not be committed');
+
+for (const doc of ['README.md','README.de.md','CAPABILITIES.md']) {
+  if (!fs.existsSync(path.join(root,doc))) continue;
+  const text=read(doc);
+  if(!text.includes('Ömer Coskun')) failures.push(`${doc} missing public identity: Ömer Coskun`);
+  if(!/Autonomous Engineering Reference (Architecture )?V1/.test(text)) failures.push(`${doc} missing canonical AI Engineering Stack lineage name`);
+}
+if (fs.existsSync(path.join(root,'.agents/manifest.json'))) {
+  try {
+    const manifest=JSON.parse(read('.agents/manifest.json'));
+    for (const [role,profile] of Object.entries(manifest.roles??{})) {
+      if ((profile.write??[]).some(value=>/assurance|approval|credential|grant|authority/i.test(value))) failures.push(`agent role ${role} must not receive assurance/authority write capability`);
+    }
+  } catch(e){ failures.push(`.agents/manifest.json invalid: ${e.message}`); }
+}
+for (const forbidden of ['strix','credentials.json','.env','.state/assurance/grants.json']) {
+  if (fs.existsSync(path.join(root,forbidden))) failures.push(`forbidden install/runtime artifact present: ${forbidden}`);
+}
 
 if (failures.length){ console.error('Repository verification FAILED:'); failures.forEach(f=>console.error(` - ${f}`)); process.exit(1); }
 console.log(`Repository verification passed (${required.length} required files checked).`);

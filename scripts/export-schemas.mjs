@@ -9,12 +9,17 @@ import {
   WORK_ORDER_STATES, RISK_CLASSES, ROLES, REVIEW_VERDICTS, CHECK_OUTCOMES,
   EXECUTION_OUTCOMES, PROVIDER_FAILURE_CLASSES, MEMORY_KINDS, AUTHORITY_CLASSES,
   EFFECT_EXTERNALITY, EFFECT_REVERSIBILITY, GATE_VERDICTS, CAPABILITY_STATUSES, BUDGET_POLICIES,
+  SCOPE_VERDICTS,
 } from '../src/schemas/schemas.mjs';
+import { SCOPE_MEMORY_KINDS, SCOPE_PATH_PATTERN, SCOPE_RETENTION_CLASSES, SCOPE_ROLES, SCOPE_STRING_PATTERN, SCOPE_TIMESTAMP_PATTERN } from '../src/policy/scope-engine.mjs';
 
 const sha256hex = { type: 'string', pattern: '^[0-9a-f]{64}$' };
 const iso = { type: 'string', format: 'date-time' };
 const str = { type: 'string', minLength: 1 };
 const arr = (items = {}) => ({ type: 'array', items });
+const scopeStr = { type: 'string', minLength: 1, pattern: SCOPE_STRING_PATTERN };
+const scopePath = { type: 'string', minLength: 1, pattern: SCOPE_PATH_PATTERN };
+const scopeTimestamp = { type: 'string', format: 'date-time', pattern: SCOPE_TIMESTAMP_PATTERN };
 
 export function buildSchemaDocument() {
   return {
@@ -38,6 +43,7 @@ export function buildSchemaDocument() {
         gateVerdicts: GATE_VERDICTS,
         capabilityStatuses: CAPABILITY_STATUSES,
         budgetPolicies: BUDGET_POLICIES,
+        scopeVerdicts: SCOPE_VERDICTS,
       },
       ProvenanceRef: {
         type: 'object',
@@ -114,6 +120,35 @@ export function buildSchemaDocument() {
       CapabilityRecord: { type: 'object', required: ['name', 'status'], properties: { name: str, status: { enum: [...CAPABILITY_STATUSES] }, implementation: str, evidence: str, source_inspiration: str, limitations: str } },
       RoutingDecision: { type: 'object', required: ['id', 'work_order_id', 'task_class', 'risk_class', 'budget_policy', 'route', 'sticky_session', 'decided_at'], properties: { id: str, work_order_id: str, task_class: str, risk_class: { enum: [...RISK_CLASSES] }, budget_policy: { enum: [...BUDGET_POLICIES] }, route: str, sticky_session: str, decided_at: iso, escalation_reason: str, selected_model: str, failure_class: { enum: [...PROVIDER_FAILURE_CLASSES] } } },
       Session: { type: 'object', required: ['id', 'work_order_id', 'started_at', 'actor', 'role'], properties: { id: str, work_order_id: str, started_at: iso, actor: str, role: { enum: [...ROLES] }, routing_class: str, base_ref: str } },
+      ScopeContract: {
+        type: 'object',
+        additionalProperties: false,
+        'x-runtime-invariants': ['parameter_bounds.min<=max', 'valid_from<valid_until', 'timestamp-calendar-validity'],
+        required: ['project', 'include_paths', 'roles', 'tools', 'memory_kinds', 'audiences', 'capabilities', 'targets', 'parameter_bounds', 'budgets', 'valid_from', 'valid_until', 'max_occurrences', 'externality', 'reversibility', 'approval_required', 'data_classes', 'retention_classes'],
+        properties: {
+          project: scopeStr,
+          include_paths: { ...arr(scopePath), minItems: 1 },
+          exclude_paths: arr(scopePath),
+          roles: { ...arr({ ...scopeStr, enum: [...SCOPE_ROLES] }), minItems: 1 }, tools: { ...arr(scopeStr), minItems: 1 },
+          memory_kinds: { ...arr({ ...scopeStr, enum: [...SCOPE_MEMORY_KINDS] }), minItems: 1 }, audiences: { ...arr(scopeStr), minItems: 1 },
+          capabilities: { ...arr(scopeStr), minItems: 1 }, targets: { ...arr(scopeStr), minItems: 1 },
+          parameter_bounds: { type: 'object', propertyNames: scopeStr, additionalProperties: { type: 'object', additionalProperties: false, required: ['min', 'max'], properties: { min: { type: 'number' }, max: { type: 'number' } } } },
+          budgets: { type: 'object', additionalProperties: false, required: ['cost_usd', 'tokens', 'seconds', 'attempts'], properties: { cost_usd: { type: 'number', minimum: 0 }, tokens: { type: 'integer', minimum: 0 }, seconds: { type: 'integer', minimum: 0 }, attempts: { type: 'integer', minimum: 1 } } },
+          valid_from: scopeTimestamp, valid_until: scopeTimestamp, max_occurrences: { type: 'integer', minimum: 1 },
+          externality: { enum: [...EFFECT_EXTERNALITY] }, reversibility: { enum: [...EFFECT_REVERSIBILITY] }, approval_required: { type: 'boolean' },
+          data_classes: { ...arr(scopeStr), minItems: 1 }, retention_classes: { ...arr({ ...scopeStr, enum: [...SCOPE_RETENTION_CLASSES] }), minItems: 1 }, source_versions: arr(scopeStr),
+        },
+      },
+      ScopeDecision: {
+        type: 'object', additionalProperties: false,
+        'x-runtime-invariants': ['digest=sha256(canonicalJson(effective))', 'null-effective-digest=sha256(canonicalJson(null))'],
+        required: ['verdict', 'effective', 'digest', 'reasons', 'unresolved_dimensions'],
+        properties: { verdict: { enum: [...SCOPE_VERDICTS] }, effective: { oneOf: [{ $ref: '#/$defs/ScopeContract' }, { type: 'null' }] }, digest: sha256hex, reasons: arr(scopeStr), unresolved_dimensions: arr(scopeStr), violations: arr(scopeStr) },
+        allOf: [
+          { if: { properties: { effective: { type: 'null' } }, required: ['effective'] }, then: { properties: { verdict: { enum: ['DEFER', 'DENY'] } } } },
+          { if: { properties: { effective: { type: 'object' } }, required: ['effective'] }, then: { properties: { verdict: { enum: ['ALLOW', 'NARROW', 'DENY'] } } } },
+        ],
+      },
     },
   };
 }

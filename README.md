@@ -1,5 +1,7 @@
 # Free Autonomous Engineering Setup
 
+Maintained by **Ömer Coskun** — [LinkedIn](https://www.linkedin.com/in/oemer-coskun53). Lineage name: **Autonomous Engineering Reference V1** (the public evolution of AI Engineering Stack).
+
 [Deutsch](README.de.md) · [Architecture](docs/ARCHITECTURE.md) · [Hermes Supervisor](docs/HERMES-SUPERVISOR.md) · [Installation](docs/INSTALLATION.md) · [Routing](docs/ROUTING.md) · [Security](docs/SECURITY-AND-AUTHORITY.md) · [Costs](docs/COSTS.md)
 
 ![Free Autonomous Engineering Setup architecture](assets/free-autonomous-engineering-setup-hero.svg)
@@ -196,6 +198,24 @@ The repository is durable project truth. Runtime memory may accelerate retrieval
 
 **Capability is not authority.** Hermes, DSH and any model may propose an action; none may self-grant permission for a consequential action.
 
+## Memory Factory and Scope Engine
+
+The **Memory Factory** (`src/memory/factory.mjs`) is the only supported entry point into the memory fabric. Ingest, retrieval, consolidation and projection all run through it, so source *and* authority provenance, conflicts, supersession and revocation survive by construction. It is proposal-side only: it can never mint a grant, credential, scope or approval token.
+
+The **Scope Engine** (`src/policy/scope-engine.mjs`) is the typed, restrictive contract for *what* a worker may touch. Scopes intersect and never widen, every dispatch binds the exact canonical `scope_digest` before a lease mutates, and an `ALLOW`/`NARROW` decision without a matching effective contract fails closed. Retrieval and projection are bound to the same digest, which is why remembered content cannot cross a project or role boundary.
+
+Both are `IMPLEMENTED` and covered by `tests/memory-factory.test.mjs`, `tests/scope-engine.test.mjs` and `tests/memory.test.mjs`.
+
+## Canonical agent surfaces
+
+`.agents/`, `.skills/`, `.commands/` and `.claude/` are first-class, scope-gated surfaces in this repository, installed byte-identically into a target project by `scripts/init-project.mjs` with a SHA-256 `INSTALL-MANIFEST.json`. `.claude/` remains a thin adapter: commands route through the supervisor and hold no direct consequential authority (`tests/agent-surfaces.test.mjs`).
+
+## Security Reviewer (Strix)
+
+Security review follows the [`usestrix/strix`](https://github.com/usestrix/strix) procedure, pinned at commit `2cc816781438f2993bcbb5c8cf3f693c25380142`, license `Apache-2.0`. No Strix source is vendored and no Strix executable is installed by this repository.
+
+The integration is an **authorization-gated contract, not an automation**: `src/security/strix-review.mjs` validates review *claims* and always returns `execution_authorized: false`. Running Strix against a target requires exact written target authorization from that target's owner, an independent AssuranceStore approval and an effect-gate ALLOW — three separate controls the preflight cannot substitute. This release performs **no real Strix execution**; every claim about a live scan is `NOT_EXECUTED`.
+
 ## Safety defaults
 
 **ALLOW:** repository reads/search, bounded local edits, tests, lint/typecheck/static analysis, reversible local artifacts.
@@ -206,7 +226,13 @@ The repository is durable project truth. Runtime memory may accelerate retrieval
 
 ## What is implemented vs. specified
 
-`npm test` runs 100+ tests that attack the invariants directly (terminal-state reopening, duplicate dispatch, stale leases, approval replay, digest tampering, authority minting through memory, revoked derived skills, unknown effects, `NOT_RUN != PASS`, …). The live DSH↔OmniRoute wiring and harness adapters are configuration validated against upstream docs of 2026-08-20, not CI-executed — [`CAPABILITIES.md`](CAPABILITIES.md) keeps the exact per-capability status, and nothing there is rated above its tests.
+Unattended continuous operation is `NOT_CLAIMED`, and so is mobile/Telegram approval transport — activation is a separate, testable safety decision, not a documentation change.
+
+`npm test` runs 200+ tests that attack the invariants directly (terminal-state reopening, duplicate dispatch, stale leases, approval replay, digest tampering, authority minting through memory, revoked derived skills, unknown effects, `NOT_RUN != PASS`, …). The live DSH↔OmniRoute wiring and harness adapters are configuration validated against upstream docs of 2026-08-20, not CI-executed — [`CAPABILITIES.md`](CAPABILITIES.md) keeps the exact per-capability status, and nothing there is rated above its tests.
+
+## Contact
+
+- LinkedIn: [Ömer Coskun](https://www.linkedin.com/in/oemer-coskun53)
 
 ## License
 

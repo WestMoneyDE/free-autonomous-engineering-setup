@@ -19,6 +19,16 @@
       "skillPath": "plugins/code-security-skills/skills/code-review-security/SKILL.md",
       "ref": "0000000000000000000000000000000000000000",
       "scope": ["**"]
+    },
+    "strix-security-reviewer": {
+      "source": "usestrix/strix",
+      "skillPath": "strix",
+      "ref": "2cc816781438f2993bcbb5c8cf3f693c25380142",
+      "scope": ["authorized-owned-target/**"],
+      "license": "Apache-2.0",
+      "vendored": false,
+      "integration": "preflight-and-result-interpretation-only",
+      "execution": "not-implemented"
     }
   }
 }

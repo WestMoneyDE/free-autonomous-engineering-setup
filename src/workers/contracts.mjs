@@ -44,10 +44,11 @@ export function acceptReviewVerdict(raw, { builderActor }) {
  * Build the reviewer's input packet. The reviewer sees the actual diff,
  * the acceptance criteria and the evidence — never only the builder's summary.
  */
-export function reviewerPacket({ workOrder, diffRef, evidence, builderActor }) {
+export function reviewerPacket({ workOrder, diffRef, evidence, builderActor, securityContext }) {
   if (!diffRef) throw new RoleSeparationError('reviewer packet requires the actual diff reference');
   if (!evidence || evidence.length === 0) throw new RoleSeparationError('reviewer packet requires evidence records');
-  return {
+  if (securityContext !== undefined) validateSecurityContext(securityContext);
+  const packet = {
     work_order_id: workOrder.id,
     objective: workOrder.objective,
     acceptance_criteria: workOrder.acceptance_criteria,
@@ -63,4 +64,27 @@ export function reviewerPacket({ workOrder, diffRef, evidence, builderActor }) {
       'failure and fallback paths',
     ],
   };
+  if (securityContext !== undefined) packet.security_context = structuredClone(securityContext);
+  return packet;
+}
+
+function validateSecurityContext(context) {
+  const digest = /^[0-9a-f]{64}$/;
+  const exactKeys = (value, keys) => Object.keys(value).length === keys.length && keys.every((key) => Object.hasOwn(value, key));
+  const validPath = (value) => typeof value === 'string' && value.startsWith('.state/evidence/strix/') && !value.includes('\\') && value.slice('.state/evidence/strix/'.length).split('/').every((part) => part && part !== '.' && part !== '..');
+  const bounds = context?.bounds;
+  if (!context || typeof context !== 'object' || Array.isArray(context)
+    || !exactKeys(context, ['authorization_ref', 'scope_digest', 'clean_checkout_evidence', 'bounds', 'expected_output_paths'])
+    || typeof context.authorization_ref !== 'string' || context.authorization_ref.length === 0
+    || !digest.test(context.scope_digest ?? '')
+    || typeof context.clean_checkout_evidence !== 'string' || context.clean_checkout_evidence.length === 0
+    || !bounds || typeof bounds !== 'object' || Array.isArray(bounds)
+    || !exactKeys(bounds, ['max_budget_usd', 'max_turns', 'max_seconds'])
+    || !(typeof bounds.max_budget_usd === 'number' && Number.isFinite(bounds.max_budget_usd) && bounds.max_budget_usd > 0)
+    || !(Number.isInteger(bounds.max_turns) && bounds.max_turns > 0)
+    || !(Number.isInteger(bounds.max_seconds) && bounds.max_seconds > 0)
+    || !Array.isArray(context.expected_output_paths) || context.expected_output_paths.length === 0
+    || !context.expected_output_paths.every(validPath)) {
+    throw new RoleSeparationError('reviewer security context must contain evidence-backed authorization, scope, checkout, bounds and output paths');
+  }
 }

@@ -6,6 +6,9 @@ import { SPEC } from './state-machine.mjs';
 import { LeaseManager, LeaseError } from './lease-manager.mjs';
 import { workOrderHash } from '../evidence/hashing.mjs';
 import { validateWorkOrder } from '../schemas/schemas.mjs';
+import { validateScopeDecisionRuntime } from '../policy/scope-engine.mjs';
+
+const WORKER_SCOPE_ROLES = Object.freeze({ builder: 'builder', reviewer: 'reviewer' });
 
 export class DispatchError extends Error {
   constructor(message, code) {
@@ -28,7 +31,16 @@ export class Dispatcher {
    * @param {object} args { project, workOrder, expectedHash, state, workerClass, actor, budgetValid }
    * @returns dispatch packet with lease
    */
-  dispatch({ project, workOrder, expectedHash, state, workerClass, actor, budgetValid = true }) {
+  dispatch({ project, workOrder, expectedHash, state, workerClass, actor, budgetValid = true, scopeDecision }) {
+    try {
+      validateScopeDecisionRuntime(scopeDecision);
+      if (!['ALLOW', 'NARROW'].includes(scopeDecision.verdict) || !scopeDecision.effective) throw new TypeError('effective scope is missing or denied');
+      if (scopeDecision.effective.project !== project) throw new TypeError('effective scope project does not match dispatch project');
+      const requiredRole = WORKER_SCOPE_ROLES[workerClass];
+      if (!requiredRole || !scopeDecision.effective.roles.includes(requiredRole)) throw new TypeError('worker class is outside effective scope roles');
+    } catch {
+      throw new DispatchError('effective scope is missing or denied', 'SCOPE_INVALID');
+    }
     validateWorkOrder(workOrder);
 
     // 1. state permits this worker class
@@ -65,7 +77,8 @@ export class Dispatcher {
       lease_key: lease.key,
       fencing_token: lease.fencing_token,
       objective: workOrder.objective,
-      scope: workOrder.scope,
+      scope: scopeDecision.effective,
+      scope_digest: scopeDecision.digest,
       out_of_scope: workOrder.out_of_scope,
       acceptance_criteria: workOrder.acceptance_criteria,
       verification_commands: workOrder.verification_commands,
