@@ -5,6 +5,8 @@
 //   UNKNOWN != FALSE, UNKNOWN != NOT_EXECUTED, FAIL != SUCCESS,
 //   TRANSPORT_FAILURE != NEGATIVE_RESULT, NOT_RUN != PASS.
 
+import { normalizeScopeContract, scopeDigest } from '../policy/scope-engine.mjs';
+
 export const WORK_ORDER_STATES = Object.freeze([
   'PLANNED', 'READY', 'IN_PROGRESS', 'READY_FOR_REVIEW', 'CHANGES_REQUESTED',
   'BLOCKED', 'WAIT_PROVIDER', 'FOUNDER_REQUIRED', 'APPROVED_FOR_EXTERNAL_ACTION',
@@ -46,6 +48,7 @@ export const EFFECT_REVERSIBILITY = Object.freeze(['reversible', 'partially-reve
 export const GATE_VERDICTS = Object.freeze(['ALLOW', 'REPAIR', 'DEFER', 'DENY', 'FALLBACK']);
 export const CAPABILITY_STATUSES = Object.freeze(['OPERATIONAL', 'IMPLEMENTED', 'SPECIFIED_ONLY', 'PLANNED', 'NOT_APPLICABLE', 'NOT_CLAIMED']);
 export const BUDGET_POLICIES = Object.freeze(['free-preferred', 'hard-free', 'cheap-preferred', 'hard-request-cap', 'premium-allowed']);
+export const SCOPE_VERDICTS = Object.freeze(['ALLOW', 'NARROW', 'DEFER', 'DENY']);
 
 class ValidationError extends Error {
   constructor(type, issues) {
@@ -357,6 +360,36 @@ export function validateRoutingDecision(o) {
   });
 }
 
+export function validateScopeContract(o) {
+  try {
+    normalizeScopeContract(o);
+    return o;
+  } catch (error) {
+    throw new ValidationError('ScopeContract', [error.message]);
+  }
+}
+
+export function validateScopeDecision(o) {
+  const r = check('ScopeDecision', o, {
+    verdict: { enum: SCOPE_VERDICTS },
+    effective: { test: (v) => v === null || isObj(v), desc: 'ScopeContract or null' },
+    digest: { test: (v) => typeof v === 'string' && /^[0-9a-f]{64}$/.test(v), desc: 'sha256 hex' },
+    reasons: { test: (v) => isArr(v) && v.every(isStr), desc: 'string array' },
+    unresolved_dimensions: { test: (v) => isArr(v) && v.every(isStr), desc: 'string array' },
+  });
+  const allowed = new Set(['verdict', 'effective', 'digest', 'reasons', 'unresolved_dimensions']);
+  const unknown = Object.keys(r).filter((field) => !allowed.has(field));
+  if (unknown.length) throw new ValidationError('ScopeDecision', [`unknown field: ${unknown[0]}`]);
+  if (r.effective === null) {
+    if (!['DENY', 'DEFER'].includes(r.verdict) || r.digest !== scopeDigest(null)) throw new ValidationError('ScopeDecision', ['null effective scope requires DENY or DEFER and the null digest']);
+  } else {
+    validateScopeContract(r.effective);
+    if (!['ALLOW', 'NARROW'].includes(r.verdict)) throw new ValidationError('ScopeDecision', ['effective scope requires ALLOW or NARROW']);
+    if (r.digest !== scopeDigest(normalizeScopeContract(r.effective))) throw new ValidationError('ScopeDecision', ['digest does not match effective scope']);
+  }
+  return r;
+}
+
 export const validators = Object.freeze({
   WorkOrder: validateWorkOrder,
   ProjectState: validateProjectState,
@@ -377,4 +410,6 @@ export const validators = Object.freeze({
   ExecutionResult: validateExecutionResult,
   CapabilityRecord: validateCapabilityRecord,
   RoutingDecision: validateRoutingDecision,
+  ScopeContract: validateScopeContract,
+  ScopeDecision: validateScopeDecision,
 });

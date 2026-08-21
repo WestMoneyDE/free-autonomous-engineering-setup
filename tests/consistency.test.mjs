@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { WORK_ORDER_STATES, CAPABILITY_STATUSES } from '../src/schemas/schemas.mjs';
+import { WORK_ORDER_STATES, CAPABILITY_STATUSES, SCOPE_VERDICTS } from '../src/schemas/schemas.mjs';
 import { buildSchemaDocument } from '../scripts/export-schemas.mjs';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -43,6 +43,13 @@ test('spec/state-machine.json states equal the schema enum exactly', () => {
 test('exported JSON Schema document is not stale', () => {
   const onDisk = JSON.parse(read('spec/schemas/records.schema.json'));
   assert.deepEqual(onDisk, buildSchemaDocument(), 'run: npm run export-schemas');
+});
+
+test('exported JSON Schema includes scope runtime enums and records', () => {
+  const schema = buildSchemaDocument();
+  assert.deepEqual(schema.$defs.enums.scopeVerdicts, SCOPE_VERDICTS);
+  assert.ok(schema.$defs.ScopeContract);
+  assert.ok(schema.$defs.ScopeDecision);
 });
 
 test('CAPABILITIES.md exists, uses the closed status vocabulary, and never rates above evidence', () => {
