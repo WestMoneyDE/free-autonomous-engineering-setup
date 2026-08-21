@@ -9,6 +9,7 @@ import { AssuranceStore } from '../src/policy/approval.mjs';
 import { Executor, ExecutionError } from '../src/policy/executor.mjs';
 import { EventStore } from '../src/state/event-store.mjs';
 import { proposalDigest } from '../src/evidence/hashing.mjs';
+import { preflightStrixReview } from '../src/security/strix-review.mjs';
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'faes-gate-'));
 
@@ -37,6 +38,8 @@ test('unknown effect kind is denied (fail closed)', () => {
   const { gate } = setup(); const v = gate.evaluate(mkProposal({ action: 'launch_rocket' }));
   assert.equal(v.verdict, 'DENY'); assert.match(v.reason, /unknown effect kind/);
 });
+
+test('Strix preflight proposal still defers to independent assurance and effect gate',()=>{const {gate}=setup({t:Date.parse('2026-08-21T10:01:00.000Z')});const request={target:'local-app',target_class:'owned',environment:'test',authorization:{written:true,target:'local-app',ref:'AUTH-17',approved:true},clean_disposable_checkout:true,max_budget_usd:5,max_turns:20,max_seconds:900,strix_ref:'2cc816781438f2993bcbb5c8cf3f693c25380142',config_digest:'a'.repeat(64),scope_digest:'b'.repeat(64),evidence_destination:'.state/evidence/strix/run-1',occurrence:1,work_order_id:'WO-5',proposed_by:'supervisor:hermes',created_at:'2026-08-21T10:00:00.000Z',expires_at:'2026-08-21T10:15:00.000Z'};const preflight=preflightStrixReview(request);assert.equal(preflight.execution_authorized,false);const verdict=gate.evaluate(preflight.proposal);assert.equal(verdict.verdict,'DEFER');assert.equal(verdict.proposal_digest,preflight.proposal_digest);assert.equal(verdict.scope,preflight.authority_scope);});
 
 test('structurally invalid proposal is denied', () => {
   const { gate } = setup(); const v = gate.evaluate({ id: 'x', action: 'git_push' });

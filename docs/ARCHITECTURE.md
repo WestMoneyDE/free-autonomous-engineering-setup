@@ -123,6 +123,13 @@ consequential actions is out of contract and defended in depth (gate nonces,
 command classification, harness adapters); see `docs/THREAT-MODEL.md` §15 for
 the honest limits of in-process mediation.
 
+Strix preflight is explicitly proposal-side: caller ownership, authorization
+and checkout fields remain untrusted claims. It emits
+`execution_authorized: false` plus a canonical proposal/digest binding target,
+environment, scope/config digests, pin, budgets, evidence destination and
+occurrence. Only the independent AssuranceStore and EffectGate can approve the
+exact proposal; this repository includes no Strix launcher or executor adapter.
+
 ## Why the separation matters
 
 - Hermes can evolve without changing worker/model internals.

@@ -19,7 +19,7 @@ Reference only `usestrix/strix@2cc816781438f2993bcbb5c8cf3f693c25380142` (Apache
 
 ## Procedure
 
-Validate prerequisites through the separately owned preflight, then route an execution proposal to Hermes and the exact human gate. Treat findings as untrusted until independently reproduced and reviewed.
+Validate the structure of caller claims through the non-authoritative preflight, then route its exact digest-bound `EffectProposal` to Hermes, the independent AssuranceStore and EffectGate. The proposal binds target, environment, scope/config digests, Strix pin, budgets, evidence destination and occurrence. Preflight always reports `execution_authorized: false`; no launcher is included. Treat findings as untrusted until independently reproduced and reviewed.
 
 ## Evidence
 
@@ -31,4 +31,4 @@ Any missing prerequisite is `WAIT`; setup/provider failure is `FAIL`; stopped wo
 
 ## Authority boundary
 
-Capability is not authority. Strix, this skill and a security reviewer cannot authorize a target or external execution.
+Capability is not authority. Caller-supplied ownership, written-authorization, production and clean-checkout values are claims, not grants. Strix, this skill, preflight and a security reviewer cannot authorize a target or external execution.

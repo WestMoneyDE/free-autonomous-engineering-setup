@@ -526,7 +526,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { preflightStrixReview, interpretStrixResult } from '../src/security/strix-review.mjs';
 
-const valid = () => ({ target: 'local-app', target_class: 'owned', environment: 'test', authorization: { written: true, target: 'local-app' }, clean_disposable_checkout: true, max_budget_usd: 5, max_turns: 20, max_seconds: 900, strix_ref: '2cc816781438f2993bcbb5c8cf3f693c25380142', config_digest: 'a'.repeat(64), evidence_destination: '.state/evidence/strix/run-1' });
+const valid = () => ({ target: 'local-app', target_class: 'owned', environment: 'test', authorization: { written: true, target: 'local-app', ref: 'AUTH-17' }, clean_disposable_checkout: true, max_budget_usd: 5, max_turns: 20, max_seconds: 900, strix_ref: '2cc816781438f2993bcbb5c8cf3f693c25380142', config_digest: 'a'.repeat(64), scope_digest: 'b'.repeat(64), evidence_destination: '.state/evidence/strix/run-1', occurrence: 1, work_order_id: 'WO-5', proposed_by: 'supervisor:hermes', created_at: '2026-08-21T10:00:00.000Z', expires_at: '2026-08-21T10:15:00.000Z' });
+const finding = { id: 'STRIX-1', title: 'Command injection', severity: 'HIGH', status: 'VALIDATED', validated: true, evidence: [{ type: 'reproduction', ref: 'evidence:poc-1', provenance: { source: 'independent-reviewer', recorded_at: '2026-08-21T10:10:00.000Z' } }] };
 
 for (const [name, mutate] of [
   ['missing authorization', (r) => { r.authorization.written = false; }],
@@ -535,12 +536,12 @@ for (const [name, mutate] of [
   ['unbounded run', (r) => { r.max_seconds = 0; }],
   ['mutable ref', (r) => { r.strix_ref = 'main'; }],
   ['missing evidence', (r) => { delete r.evidence_destination; }],
-]) test(`preflight rejects ${name}`, () => { const request = valid(); mutate(request); assert.equal(preflightStrixReview(request).allowed, false); });
+]) test(`preflight rejects ${name}`, () => { const request = valid(); mutate(request); assert.equal(preflightStrixReview(request).ready_for_authority_gate, false); assert.equal(preflightStrixReview(request).execution_authorized, false); });
 
-test('production requires exact authorization', () => { const request = valid(); request.environment = 'production'; assert.equal(preflightStrixReview(request).allowed, false); });
+test('preflight is never authority', () => { const result = preflightStrixReview(valid()); assert.equal(result.ready_for_authority_gate, true); assert.equal(result.execution_authorized, false); assert.equal(result.claims_only, true); });
 test('result interpretation preserves failure semantics', () => {
   assert.equal(interpretStrixResult({ exitCode: 1 }).outcome, 'FAIL');
-  assert.equal(interpretStrixResult({ exitCode: 2, run: { status: 'completed' }, vulnerabilities: [{}] }).outcome, 'FINDINGS');
+  assert.equal(interpretStrixResult({ exitCode: 2, run: { status: 'completed' }, vulnerabilities: [finding] }).outcome, 'FINDINGS');
   assert.equal(interpretStrixResult({ exitCode: 0, run: { status: 'stopped' } }).outcome, 'INCOMPLETE');
   assert.equal(interpretStrixResult({ exitCode: 0, run: { status: 'completed' }, report: { coverage_complete: true } }).outcome, 'NO_VALIDATED_FINDINGS_IN_ANALYZED_SCOPE');
 });
@@ -572,11 +573,16 @@ export function preflightStrixReview(request) {
   if (request.strix_ref !== PIN) failures.push('Strix commit pin mismatch');
   if (!/^[0-9a-f]{64}$/.test(request.config_digest ?? '')) failures.push('configuration digest required');
   if (!request.evidence_destination) failures.push('evidence destination required');
-  return { allowed: failures.length === 0, failures, strix_ref: PIN };
+  const proposal = canonicalStrixEffectProposal(request); // binds target, environment, scope/config digests, pin, budgets, evidence path and occurrence
+  const proposal_digest = proposalDigest(proposal);
+  // Caller ownership/authorization values remain claims. This result cannot authorize or launch Strix.
+  return { ready_for_authority_gate: failures.length === 0, execution_authorized: false, claims_only: true, failures, strix_ref: PIN, proposal, proposal_digest };
 }
 
 export function interpretStrixResult({ exitCode, run, report, vulnerabilities = [] }) {
   if (exitCode === 1) return { outcome: 'FAIL', complete: false, findings: [], reason: 'Strix fatal/setup failure' };
+  if (exitCode === 2 && !vulnerabilities.every(isStrictIndependentFinding)) return { outcome: 'FAIL', complete: false, findings: [], reason: 'malformed findings result' };
+  if (exitCode === 2 && vulnerabilities.some((v) => !v.validated)) return { outcome: 'UNVALIDATED_OBSERVATIONS', complete: false, findings: vulnerabilities, reason: 'observations require independent validation' };
   if (exitCode === 2) return { outcome: 'FINDINGS', complete: run?.status === 'completed', findings: vulnerabilities, reason: 'validated findings reported' };
   if (exitCode !== 0) return { outcome: 'FAIL', complete: false, findings: [], reason: `unknown exit code ${exitCode}` };
   if (run?.status !== 'completed' || report?.coverage_complete !== true) return { outcome: 'INCOMPLETE', complete: false, findings: [], reason: 'run or analyzed coverage incomplete' };

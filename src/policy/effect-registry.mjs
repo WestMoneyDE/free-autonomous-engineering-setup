@@ -50,6 +50,10 @@ export function registerDefaultEffects() {
   registerEffect({ action: 'git_push', externality: 'external', reversibility: 'partially-reversible', capability_class: 'repo-publish', risk_class: 'CONSEQUENTIAL', requires_human_approval: true });
   registerEffect({ action: 'deploy', externality: 'external', reversibility: 'partially-reversible', capability_class: 'production', risk_class: 'CONSEQUENTIAL', requires_human_approval: true });
   registerEffect({ action: 'send_message', externality: 'external', reversibility: 'irreversible', capability_class: 'external-comms', risk_class: 'CONSEQUENTIAL', requires_human_approval: true, parameter_bounds: { body: { maxLength: 20000 } } });
+  // Contract classification only: no Strix launcher is implemented. Any
+  // eventual occurrence must still traverse AssuranceStore, EffectGate and a
+  // separately implemented one-shot executor integration.
+  registerEffect({ action: 'run_strix_review', externality: 'external', reversibility: 'partially-reversible', capability_class: 'security-review', risk_class: 'CONSEQUENTIAL', requires_human_approval: true });
   registerEffect({ action: 'payment', externality: 'external', reversibility: 'irreversible', capability_class: 'financial', risk_class: 'CONSEQUENTIAL', requires_human_approval: true });
   // DENY class: forbidden even with approval
   registerEffect({ action: 'exfiltrate_secret', externality: 'external', reversibility: 'irreversible', capability_class: 'forbidden', risk_class: 'CONSEQUENTIAL', requires_human_approval: true, forbidden_class: 'secret-exfiltration' });

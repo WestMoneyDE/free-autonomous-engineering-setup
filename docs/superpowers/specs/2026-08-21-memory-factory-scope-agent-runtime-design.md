@@ -205,6 +205,13 @@ A Strix run requires:
 - an evidence destination outside adaptive memory truth;
 - no automatic rerun after failure, cancellation, budget stop or ambiguous result.
 
+All ownership, authorization and clean-checkout inputs to preflight are
+untrusted claims. Preflight is non-authoritative and always returns
+`execution_authorized: false`; it only constructs a canonical proposal and
+digest binding target, environment, scope/config digests, immutable pin,
+budgets, evidence destination and occurrence. The independent AssuranceStore
+and EffectGate must approve that exact proposal. No Strix launcher ships here.
+
 ### Reviewer sequence
 
 ```text

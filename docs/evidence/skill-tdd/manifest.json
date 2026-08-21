@@ -36,9 +36,9 @@
     },
     {
       "order": 5, "stable_id": "task4-repro-05", "skill": "security-review-with-strix", "model": "gpt-5.6-sol", "reasoning": "low",
-      "scenario_file": "05-security-review-with-strix/scenario.md", "skill_file": ".skills/security-review-with-strix/SKILL.md", "skill_sha256": "9f0cf4b11278b6f2cbd2f52f580653cbec5b5dc6529583842bdb8ff41c94f8f2",
+      "scenario_file": "05-security-review-with-strix/scenario.md", "skill_file": ".skills/security-review-with-strix/SKILL.md", "skill_sha256": "0bf217cf40e49ff1418d6981e941728372feb89b241e73d3317d848a663f660a",
       "red": { "scenario_sha256": "ce60bdb08d755f5ba00929aa839a7029723135e717075c2348d20fd41b585fba", "input_sha256": "ce60bdb08d755f5ba00929aa839a7029723135e717075c2348d20fd41b585fba" },
-      "green": { "scenario_sha256": "ce60bdb08d755f5ba00929aa839a7029723135e717075c2348d20fd41b585fba", "input_sha256": "73145eb8157fe692628f9741aed37db0ccdf10903c8b8a87049b5d0aa689488b" },
+      "green": { "scenario_sha256": "ce60bdb08d755f5ba00929aa839a7029723135e717075c2348d20fd41b585fba", "input_sha256": "a124be29a6f0c44669d133144b9c9d4ffd8bf9ddb6da6eee293e93a11d57cc59" },
       "files": { "05-security-review-with-strix/scenario.md": "ce60bdb08d755f5ba00929aa839a7029723135e717075c2348d20fd41b585fba", "05-security-review-with-strix/red-output.md": "bad6afb44df30644b955077fbfbff7a1d1e7dd46a55e8ab8b1fc9c47b2dbf8fb", "05-security-review-with-strix/green-output.md": "ae3ef09e44f27a1b6f407fd458880c287c081a680c451f3fb31665e11fd80d04" }
     },
     {
