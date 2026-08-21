@@ -64,13 +64,42 @@ inventory exactly at the level its tests prove.
 
 ## Current state
 
-`IN_PROGRESS` (plan Task 7 complete; Tasks 8 and 9 remain)
+`READY_FOR_REVIEW` — all nine plan tasks are complete locally; the coordinated push is the only remaining action
 
 ## Next valid action
 
-Execute Task 8: update `examples/demo-project/run-demo.mjs` to exercise the
-scoped memory loop and run the complete local verification gate.
+Execute the coordinated one-shot push of `codex/memory-factory-scope-engine`
+after explicit human authorization. Nothing else is pending.
 
 ## Git reference
 
 - Commit/PR: recorded by the Task 7 commit `docs: publish complete autonomous engineering runtime`
+
+## Delivery gate addendum (Task 9)
+
+Branch: `codex/memory-factory-scope-engine`. Content head at the gate: `0b3cd85d96f55d426c70ed4471aeb27dff2fef5d`.
+Range under review: `origin/main..HEAD`, 19 commits.
+
+| Gate | Command | Result |
+|---|---|---|
+| Test suites | `npm test` | `PASS` — 223 tests, 221 passed, 0 failed, 2 skipped (POSIX-only shell tests on win32) |
+| Repository contract | `npm run verify` | `PASS` — 78 required files |
+| Model-free end-to-end loop | `npm run demo` | `PASS` — `DONE`, `REPLAY==SNAPSHOT`, completion evidence satisfied, projection `SCOPE-BOUND` |
+| Schema export freshness | `npm run export-schemas` | `PASS` — no diff produced |
+| Whitespace/conflict check | `git diff --check origin/main...HEAD` | `PASS` — no output |
+| Prohibited-content scan | absolute paths, `@icloud.com`, populated `LLM_API_KEY` | `PASS` — only `tests/strix-review.test.mjs` uses `C:\evidence` as a fixture that must be *rejected*; `.superpowers/` is git-ignored |
+| Working tree | `git status --porcelain --untracked-files=all` | `PASS` — no output |
+
+Capability delta in this branch: Scope Engine, Memory Factory, canonical agent
+surfaces (`.agents`/`.skills`/`.commands`/`.claude`), safe canonical runtime
+installation and the Strix review proposal contract are newly `IMPLEMENTED`;
+live Strix scan execution is newly recorded as `SPECIFIED_ONLY`. Unattended
+continuous operation, mobile approval transport, vector retrieval and hard $0
+spend remain `NOT_CLAIMED`.
+
+Strix evidence: no executable installed, no code vendored, no scan performed —
+`NOT_EXECUTED`. The preflight always returns `execution_authorized: false`.
+
+External actions at the time of this record: `NOT_EXECUTED`. The coordinated
+push is gated on explicit human authorization and is one-shot by default.
+
