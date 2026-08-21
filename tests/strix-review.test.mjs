@@ -82,7 +82,7 @@ test('authorization must carry a durable written record reference', () => {
 
 test('result interpretation preserves explicit result semantics', () => {
   assert.equal(interpretStrixResult({ exitCode: 1 }).outcome, 'FAIL');
-  assert.equal(interpretStrixResult({ exitCode: 2, run: { status: 'completed' }, vulnerabilities: [validatedFinding()] }).outcome, 'FINDINGS');
+  assert.equal(interpretStrixResult({ exitCode: 2, run: { status: 'completed' }, report: { coverage_complete: true }, vulnerabilities: [validatedFinding()] }).outcome, 'FINDINGS');
   assert.equal(interpretStrixResult({ exitCode: 0, run: { status: 'stopped' } }).outcome, 'INCOMPLETE');
   assert.equal(interpretStrixResult({ exitCode: 0, run: { status: 'completed' }, report: { coverage_complete: true } }).outcome, 'NO_VALIDATED_FINDINGS_IN_ANALYZED_SCOPE');
 });
@@ -94,12 +94,14 @@ for (const [name, result] of [
   ['malformed run', { exitCode: 0, run: 'completed', report: { coverage_complete: true } }],
   ['malformed report', { exitCode: 0, run: { status: 'completed' }, report: 'complete' }],
   ['findings without array', { exitCode: 2, run: { status: 'completed' }, vulnerabilities: {} }],
-  ['findings without findings', { exitCode: 2, run: { status: 'completed' }, vulnerabilities: [] }],
-  ['null finding', { exitCode: 2, run: { status: 'completed' }, vulnerabilities: [null] }],
-  ['primitive finding', { exitCode: 2, run: { status: 'completed' }, vulnerabilities: ['critical'] }],
-  ['finding without identity', { exitCode: 2, run: { status: 'completed' }, vulnerabilities: [validatedFinding({ id: '' })] }],
-  ['finding with unknown severity', { exitCode: 2, run: { status: 'completed' }, vulnerabilities: [validatedFinding({ severity: 'URGENT' })] }],
-  ['finding without provenance', { exitCode: 2, run: { status: 'completed' }, vulnerabilities: [validatedFinding({ evidence: [{}] })] }],
+  ['findings without findings', { exitCode: 2, run: { status: 'completed' }, report: { coverage_complete: true }, vulnerabilities: [] }],
+  ['null finding', { exitCode: 2, run: { status: 'completed' }, report: { coverage_complete: true }, vulnerabilities: [null] }],
+  ['primitive finding', { exitCode: 2, run: { status: 'completed' }, report: { coverage_complete: true }, vulnerabilities: ['critical'] }],
+  ['finding without identity', { exitCode: 2, run: { status: 'completed' }, report: { coverage_complete: true }, vulnerabilities: [validatedFinding({ id: '' })] }],
+  ['finding with unknown severity', { exitCode: 2, run: { status: 'completed' }, report: { coverage_complete: true }, vulnerabilities: [validatedFinding({ severity: 'URGENT' })] }],
+  ['finding without provenance', { exitCode: 2, run: { status: 'completed' }, report: { coverage_complete: true }, vulnerabilities: [validatedFinding({ evidence: [{}] })] }],
+  ['findings without coverage report', { exitCode: 2, run: { status: 'completed' }, vulnerabilities: [validatedFinding()] }],
+  ['findings with string coverage', { exitCode: 2, run: { status: 'completed' }, report: { coverage_complete: 'true' }, vulnerabilities: [validatedFinding()] }],
   ['success code with findings', { exitCode: 0, run: { status: 'completed' }, report: { coverage_complete: true }, vulnerabilities: [{}] }],
   ['unknown run status', { exitCode: 0, run: { status: 'mostly-completed' }, report: { coverage_complete: false } }],
   ['non-boolean coverage', { exitCode: 0, run: { status: 'completed' }, report: { coverage_complete: 'true' } }],
@@ -109,7 +111,9 @@ for (const [name, result] of [
   assert.equal(interpreted.complete, false);
 });
 
-test('well-formed but independently unvalidated observations are neutral',()=>{const result=interpretStrixResult({exitCode:2,run:{status:'completed'},vulnerabilities:[validatedFinding({status:'NEEDS_VERIFICATION',validated:false})]});assert.equal(result.outcome,'UNVALIDATED_OBSERVATIONS');assert.equal(result.complete,false);assert.doesNotMatch(result.reason,/validated findings/i);});
+test('well-formed but independently unvalidated observations are neutral',()=>{const result=interpretStrixResult({exitCode:2,run:{status:'completed'},report:{coverage_complete:true},vulnerabilities:[validatedFinding({status:'NEEDS_VERIFICATION',validated:false})]});assert.equal(result.outcome,'UNVALIDATED_OBSERVATIONS');assert.equal(result.complete,false);assert.doesNotMatch(result.reason,/validated findings/i);});
+
+test('validated findings completeness tracks analyzed coverage',()=>{const complete=interpretStrixResult({exitCode:2,run:{status:'completed'},report:{coverage_complete:true},vulnerabilities:[validatedFinding()]});assert.equal(complete.outcome,'FINDINGS');assert.equal(complete.complete,true);const partial=interpretStrixResult({exitCode:2,run:{status:'completed'},report:{coverage_complete:false},vulnerabilities:[validatedFinding()]});assert.equal(partial.outcome,'FINDINGS');assert.equal(partial.complete,false);assert.match(partial.reason,/validated findings in incomplete analyzed coverage/i);assert.doesNotMatch(partial.reason,/safe|full coverage/i);});
 
 test('successful exit never implies full target safety', () => {
   const result = interpretStrixResult({ exitCode: 0, run: { status: 'completed' }, report: { coverage_complete: true } });

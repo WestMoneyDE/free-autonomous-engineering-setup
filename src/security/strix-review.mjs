@@ -99,9 +99,10 @@ export function interpretStrixResult(result) {
   if (!Array.isArray(vulnerabilities)) return failed('malformed vulnerabilities result');
   if (exitCode === 1) return failed('Strix fatal/setup failure');
   if (exitCode === 2) {
-    if (!isRecord(run) || !RUN_STATUSES.includes(run.status) || vulnerabilities.length === 0 || !vulnerabilities.every(validFinding)) return failed('malformed findings result');
+    if (!isRecord(run) || !RUN_STATUSES.includes(run.status) || !isRecord(report) || typeof report.coverage_complete !== 'boolean' || vulnerabilities.length === 0 || !vulnerabilities.every(validFinding)) return failed('malformed findings result');
     if (!vulnerabilities.every((finding) => finding.validated === true)) return { outcome: 'UNVALIDATED_OBSERVATIONS', complete: false, findings: vulnerabilities, reason: 'observations require independent validation' };
-    return { outcome: 'FINDINGS', complete: run.status === 'completed', findings: vulnerabilities, reason: 'validated findings reported' };
+    const complete = run.status === 'completed' && report.coverage_complete === true;
+    return { outcome: 'FINDINGS', complete, findings: vulnerabilities, reason: complete ? 'validated findings reported in completed analyzed coverage' : 'validated findings in incomplete analyzed coverage' };
   }
   if (exitCode !== 0) return failed(`unknown exit code ${exitCode}`);
   if (vulnerabilities.length !== 0) return failed('exit code contradicts reported vulnerabilities');

@@ -233,6 +233,8 @@ Exit code `0` means no validated vulnerability in analyzed coverage, not a clean
 
 Strix findings remain untrusted inputs until the independent Security Reviewer confirms the PoC, attacker-controlled data path, framework context and impact. Only high-confidence exploitable findings enter the blocking report; uncertain observations are marked `NEEDS_VERIFICATION`.
 
+Exit-code-2 results require a report with a strictly boolean `coverage_complete`. Validated findings remain `FINDINGS` under partial coverage, but `complete` is true only for a completed run with `coverage_complete: true`; otherwise the reason explicitly records validated findings in incomplete analyzed coverage and makes no broader safety claim.
+
 ### CI position
 
 The repository ships a disabled/example Strix CI profile rather than an automatically active workflow. Activation requires operator-provided secrets, Docker/runner validation, diff-base validation, budget policy and explicit repository authorization. Ordinary deterministic tests remain free of external model/provider dependence.

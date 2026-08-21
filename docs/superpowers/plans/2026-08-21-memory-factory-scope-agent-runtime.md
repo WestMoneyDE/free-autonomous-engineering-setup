@@ -541,7 +541,7 @@ for (const [name, mutate] of [
 test('preflight is never authority', () => { const result = preflightStrixReview(valid()); assert.equal(result.ready_for_authority_gate, true); assert.equal(result.execution_authorized, false); assert.equal(result.claims_only, true); });
 test('result interpretation preserves failure semantics', () => {
   assert.equal(interpretStrixResult({ exitCode: 1 }).outcome, 'FAIL');
-  assert.equal(interpretStrixResult({ exitCode: 2, run: { status: 'completed' }, vulnerabilities: [finding] }).outcome, 'FINDINGS');
+  assert.equal(interpretStrixResult({ exitCode: 2, run: { status: 'completed' }, report: { coverage_complete: true }, vulnerabilities: [finding] }).outcome, 'FINDINGS');
   assert.equal(interpretStrixResult({ exitCode: 0, run: { status: 'stopped' } }).outcome, 'INCOMPLETE');
   assert.equal(interpretStrixResult({ exitCode: 0, run: { status: 'completed' }, report: { coverage_complete: true } }).outcome, 'NO_VALIDATED_FINDINGS_IN_ANALYZED_SCOPE');
 });
@@ -581,9 +581,10 @@ export function preflightStrixReview(request) {
 
 export function interpretStrixResult({ exitCode, run, report, vulnerabilities = [] }) {
   if (exitCode === 1) return { outcome: 'FAIL', complete: false, findings: [], reason: 'Strix fatal/setup failure' };
+  if (exitCode === 2 && typeof report?.coverage_complete !== 'boolean') return { outcome: 'FAIL', complete: false, findings: [], reason: 'findings require a typed coverage report' };
   if (exitCode === 2 && !vulnerabilities.every(isStrictIndependentFinding)) return { outcome: 'FAIL', complete: false, findings: [], reason: 'malformed findings result' };
   if (exitCode === 2 && vulnerabilities.some((v) => !v.validated)) return { outcome: 'UNVALIDATED_OBSERVATIONS', complete: false, findings: vulnerabilities, reason: 'observations require independent validation' };
-  if (exitCode === 2) return { outcome: 'FINDINGS', complete: run?.status === 'completed', findings: vulnerabilities, reason: 'validated findings reported' };
+  if (exitCode === 2) { const complete = run?.status === 'completed' && report.coverage_complete === true; return { outcome: 'FINDINGS', complete, findings: vulnerabilities, reason: complete ? 'validated findings reported in completed analyzed coverage' : 'validated findings in incomplete analyzed coverage' }; }
   if (exitCode !== 0) return { outcome: 'FAIL', complete: false, findings: [], reason: `unknown exit code ${exitCode}` };
   if (run?.status !== 'completed' || report?.coverage_complete !== true) return { outcome: 'INCOMPLETE', complete: false, findings: [], reason: 'run or analyzed coverage incomplete' };
   return { outcome: 'NO_VALIDATED_FINDINGS_IN_ANALYZED_SCOPE', complete: true, findings: [], reason: 'completed analyzed scope reported no validated findings' };
