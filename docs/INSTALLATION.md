@@ -84,7 +84,9 @@ node scripts/init-project.mjs --target ../my-project           # dry run
 node scripts/init-project.mjs --target ../my-project --apply
 ```
 
-This creates the compact durable interface the supervisor consumes:
+The installer is dry-run by default, writes with `wx` so it never overwrites, refuses paths that escape the target or traverse a symbolic link, and records every installed file with its SHA-256 plus the source repository and version in `INSTALL-MANIFEST.json`. It installs no credentials, no Strix executable and no assurance-write capability.
+
+This creates the compact durable interface the supervisor consumes, plus the canonical agent surfaces `.agents/`, `.skills/`, `.commands/` and `.claude/`:
 
 ```text
 brain/STATE.json
@@ -92,6 +94,11 @@ CURRENT-WORK-ORDER.md
 .state/tasks/
 .state/sessions/
 .state/evidence/
+.agents/
+.skills/
+.commands/
+.claude/
+INSTALL-MANIFEST.json
 ```
 
 Minimum state fields:

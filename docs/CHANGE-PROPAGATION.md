@@ -26,3 +26,5 @@ Prefer a single coherent prepared change over a sequence of corrective commits: 
 - Do `AGENTS.md` and the docs still guide agents correctly?
 - Did the change weaken `Capability != Authority`, `AgentMemory != AssuranceState` or `OUTCOME_UNKNOWN != NOT_EXECUTED`?
 - Can a fresh agent understand what changed without this chat?
+- Do the canonical surfaces (`.agents/`, `.skills/`, `.commands/`, `.claude/`) still match the installer plan and `tests/agent-surfaces.test.mjs`?
+- Did the change widen a scope, or let a security-review claim act as authority?

@@ -117,6 +117,11 @@ src/memory/store.mjs      append/fetch/query/supersede/conflict/consolidate/
                           from source provenance; derived-procedure lineage;
                           revocation propagation; assurance kinds rejected
 src/memory/retrieval.mjs  deterministic BM25 with provenance qualifiers
+src/memory/factory.mjs    Memory Factory: the single scoped entry point for
+                          ingest/retrieve/consolidate/project; binds project +
+                          validated scope decision; proposal-side only
+src/memory/projection.mjs scope-digest-consistent projection; mismatch raises
+src/policy/scope-engine.mjs  typed restrictive scopes (intersection only)
 src/policy/approval.mjs   SEPARATE assurance store (approvals, consumption)
 ```
 
@@ -133,7 +138,9 @@ Before claiming memory is reliable, verify:
 - retrieval failure remains failure/unknown;
 - memory APIs cannot mint authority;
 - assurance state cannot be mutated through memory APIs;
-- a fresh coding-agent session can reconstruct the documented project state.
+- a fresh coding-agent session can reconstruct the documented project state;
+- retrieval and projection outside the bound scope fail closed with explicit
+  unresolved dimensions instead of silently widened context.
 
 ## Session checkpoint
 

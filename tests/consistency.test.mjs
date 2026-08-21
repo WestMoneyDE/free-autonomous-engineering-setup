@@ -140,3 +140,12 @@ test('repository exposes the complete canonical runtime contract', () => {
   assert.match(publicText, /Ömer Coskun/);
   assert.match(publicText, /Autonomous Engineering Reference (Architecture )?V1/);
 });
+
+test('public docs state identity lineage capabilities and security non-claims', () => {
+  const files = ['README.md', 'README.de.md', 'CAPABILITIES.md', 'docs/ARCHITECTURE.md', 'docs/THREAT-MODEL.md'];
+  const text = files.map(read).join('\n');
+  for (const marker of ['Ömer Coskun', 'https://www.linkedin.com/in/oemer-coskun53', 'Autonomous Engineering Reference V1', 'Memory Factory', 'Scope Engine', '2cc816781438f2993bcbb5c8cf3f693c25380142', 'Apache-2.0']) assert.ok(text.includes(marker), `missing ${marker}`);
+  assert.match(text, /written (target )?authorization/i);
+  assert.match(text, /no real Strix (scan|execution)|Strix.*NOT_EXECUTED/i);
+  assert.match(text, /unattended continuous operation.*NOT_CLAIMED|NOT_CLAIMED.*unattended continuous operation/i);
+});

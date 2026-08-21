@@ -19,6 +19,12 @@
 
 - <explicit non-goal>
 
+## Effective scope
+
+- Scope kind / role: `<typed scope>`
+- Canonical `scope_digest`: `<digest bound at dispatch>`
+- Narrowing only: intersection with the parent scope; widening is a denial, not a repair.
+
 ## Acceptance criteria
 
 - [ ] <observable criterion>
@@ -58,6 +64,8 @@ Completion is invalid if required evidence did not run and the report does not e
 
 - Required: `YES | NO`
 - Reviewer constraint: `<security / different role / other>`
+- Security review (Strix procedure) required: `YES | NO`
+- If YES: written target authorization reference `<none or exact artifact>`; preflight is never authorization.
 
 ## External actions
 

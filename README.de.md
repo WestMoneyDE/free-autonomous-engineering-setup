@@ -1,6 +1,6 @@
 # Free Autonomous Engineering Setup
 
-Verantwortet von **Ömer Coskun**. Lineage-Name: **Autonomous Engineering Reference Architecture V1** (die öffentliche Weiterentwicklung des AI Engineering Stack).
+Verantwortet von **Ömer Coskun** — [LinkedIn](https://www.linkedin.com/in/oemer-coskun53). Lineage-Name: **Autonomous Engineering Reference V1** (die öffentliche Weiterentwicklung des AI Engineering Stack).
 
 [English](README.md) · [Installation](docs/INSTALLATION.md) · [Architektur](docs/ARCHITECTURE.md) · [Routing](docs/ROUTING.md) · [Kosten](docs/COSTS.md)
 
@@ -93,6 +93,26 @@ Work Order → Plan → Build → Verify → Independent Review → Human Gate �
 - Eine substantielle Session hinterlässt einen dauerhaften Checkpoint, sodass ein neuer Agent ohne alten Chat fortsetzen kann.
 
 Siehe [`AGENTS.md`](AGENTS.md), [`docs/OPERATING-MODEL.md`](docs/OPERATING-MODEL.md) und [`docs/MEMORY-AND-STATE.md`](docs/MEMORY-AND-STATE.md).
+
+## Memory Factory, Scope Engine und kanonische Agent-Flächen
+
+Die **Memory Factory** (`src/memory/factory.mjs`) ist der einzige unterstützte Eingang in die Memory Fabric: Ingest, Retrieval, Konsolidierung und Projektion laufen durch sie, damit Source- **und** Authority-Provenance, Konflikte, Supersession und Revocation konstruktionsbedingt erhalten bleiben. Sie ist reine Proposal-Seite und kann niemals Grants, Credentials, Scopes oder Approval-Token erzeugen.
+
+Die **Scope Engine** (`src/policy/scope-engine.mjs`) ist der typisierte, restriktive Vertrag darüber, *was* ein Worker berühren darf. Scopes schneiden sich und weiten sich nie, jeder Dispatch bindet den exakten kanonischen `scope_digest` vor jeder Lease-Mutation, und eine `ALLOW`/`NARROW`-Entscheidung ohne passenden Effective Contract fällt fail-closed aus.
+
+`.agents/`, `.skills/`, `.commands/` und `.claude/` sind kanonische, scope-gegatete Flächen im Repository und werden von `scripts/init-project.mjs` byte-identisch mit SHA-256-`INSTALL-MANIFEST.json` installiert. `.claude/` bleibt ein dünner Adapter ohne eigene konsequente Autorität.
+
+## Security Reviewer (Strix)
+
+Der Security-Review folgt dem Verfahren aus [`usestrix/strix`](https://github.com/usestrix/strix), gepinnt auf Commit `2cc816781438f2993bcbb5c8cf3f693c25380142`, Lizenz `Apache-2.0`. Es wird kein Strix-Code vendored und kein Strix-Executable installiert.
+
+Die Integration ist ein **autorisierungs-gegateter Vertrag, keine Automation**: Der Preflight liefert immer `execution_authorized: false`. Ein Lauf gegen ein Ziel erfordert exakte schriftliche Zielautorisierung (written target authorization), eine unabhängige AssuranceStore-Freigabe und ein Effect-Gate-ALLOW. In diesem Release findet **keine echte Strix-Ausführung** statt: `NOT_EXECUTED`.
+
+Unbeaufsichtigter Dauerbetrieb (unattended continuous operation) bleibt `NOT_CLAIMED`, ebenso mobiler Approval-Transport.
+
+## Kontakt
+
+- LinkedIn: [Ömer Coskun](https://www.linkedin.com/in/oemer-coskun53)
 
 ## Statushinweis
 

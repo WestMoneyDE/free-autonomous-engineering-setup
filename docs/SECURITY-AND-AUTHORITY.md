@@ -100,6 +100,28 @@ Sensitive changes should be reviewed independently from the builder. The review 
 - failure and fallback paths;
 - whether the change weakens this authority model.
 
+## Scoped authority: the Scope Engine
+
+Approval answers *may this action happen*. The Scope Engine answers *what may it
+touch*. Both fail closed. Scopes are typed and restrictive, intersection only
+narrows, and dispatch binds the exact canonical `scope_digest` before a lease
+mutates. A permissive scope verdict without a matching effective contract is a
+denial, never a repair (`src/policy/scope-engine.mjs`, `tests/scope-engine.test.mjs`).
+
+Memory is bound by the same rule: the Memory Factory is proposal-side and cannot
+produce a grant, credential, scope or approval token, no matter what a record
+says (`src/memory/factory.mjs`).
+
+## Security review is not authority
+
+The Strix Security Reviewer procedure (`usestrix/strix@2cc816781438f2993bcbb5c8cf3f693c25380142`,
+`Apache-2.0`) is integrated as an authorization-gated contract. The preflight
+always returns `execution_authorized: false`; ownership and authorization fields
+supplied by a caller are untrusted claims. Executing a scan against a target
+requires exact **written target authorization** from that target's owner, an
+independent AssuranceStore approval and an effect-gate ALLOW. This release
+performs no real Strix execution (`NOT_EXECUTED`).
+
 ## Fail closed
 
 When security, budget, provider identity, evidence or authority cannot be established, stop in an explicit state. “Continue and hope” is not an autonomous-engineering policy.
