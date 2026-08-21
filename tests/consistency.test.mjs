@@ -71,7 +71,7 @@ test('scope schema expressible constraints reject the same adversarial values as
 
 test('scope schema names runtime-only cross-field invariants', () => {
   const annotations = buildSchemaDocument().$defs.ScopeContract['x-runtime-invariants'];
-  assert.deepEqual(annotations, ['parameter_bounds.min<=max', 'valid_from<valid_until']);
+  assert.deepEqual(annotations, ['parameter_bounds.min<=max', 'valid_from<valid_until', 'timestamp-calendar-validity']);
   assert.deepEqual(buildSchemaDocument().$defs.ScopeDecision['x-runtime-invariants'], ['digest=sha256(canonicalJson(effective))', 'null-effective-digest=sha256(canonicalJson(null))']);
 });
 

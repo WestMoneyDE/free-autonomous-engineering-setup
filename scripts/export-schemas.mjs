@@ -123,7 +123,7 @@ export function buildSchemaDocument() {
       ScopeContract: {
         type: 'object',
         additionalProperties: false,
-        'x-runtime-invariants': ['parameter_bounds.min<=max', 'valid_from<valid_until'],
+        'x-runtime-invariants': ['parameter_bounds.min<=max', 'valid_from<valid_until', 'timestamp-calendar-validity'],
         required: ['project', 'include_paths', 'roles', 'tools', 'memory_kinds', 'audiences', 'capabilities', 'targets', 'parameter_bounds', 'budgets', 'valid_from', 'valid_until', 'max_occurrences', 'externality', 'reversibility', 'approval_required', 'data_classes', 'retention_classes'],
         properties: {
           project: scopeStr,

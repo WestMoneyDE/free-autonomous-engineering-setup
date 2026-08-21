@@ -94,3 +94,32 @@ test('scope timestamps accept canonical UTC or offset forms and reject loose dat
   assert.doesNotThrow(() => normalizeScopeContract(contract({ valid_from: '2026-08-21T01:00:00+01:00' })));
   assert.throws(() => normalizeScopeContract(contract({ valid_from: '2026-08-21 00:00:00Z' })), /valid_from/);
 });
+
+test('validity intersection compares instants instead of timestamp text', () => {
+  const lower = intersectScopes([
+    contract({ valid_from: '2026-08-21T02:00:00+02:00' }),
+    contract({ valid_from: '2026-08-21T01:00:00Z' }),
+  ]);
+  assert.equal(lower.effective.valid_from, '2026-08-21T01:00:00Z');
+
+  const upper = intersectScopes([
+    contract({ valid_until: '2026-08-22T00:30:00+02:00' }),
+    contract({ valid_until: '2026-08-21T23:00:00Z' }),
+  ]);
+  assert.equal(upper.effective.valid_until, '2026-08-22T00:30:00+02:00');
+});
+
+test('timestamp validation enforces calendar, clock, and offset semantics', () => {
+  assert.doesNotThrow(() => normalizeScopeContract(contract({ valid_from: '2028-02-29T00:00:00Z', valid_until: '2028-03-01T00:00:00Z' })));
+  for (const invalid of [
+    '2026-02-30T00:00:00Z',
+    '2026-02-29T00:00:00Z',
+    '2026-13-01T00:00:00Z',
+    '2026-04-31T00:00:00Z',
+    '2026-08-21T24:00:00Z',
+    '2026-08-21T00:60:00Z',
+    '2026-08-21T00:00:60Z',
+    '2026-08-21T00:00:00+14:01',
+    '2026-08-21T00:00:00+15:00',
+  ]) assert.throws(() => normalizeScopeContract(contract({ valid_from: invalid })), /valid_from/, invalid);
+});

@@ -21,7 +21,7 @@ export const SCOPE_RETENTION_CLASSES = Object.freeze(['session', 'project', 'per
 const DIGEST_RE = /^[0-9a-f]{64}$/;
 export const SCOPE_STRING_PATTERN = '^(?!\\s)(?:[^\\r\\n]*\\S)$';
 export const SCOPE_PATH_PATTERN = '^(?![A-Za-z]:)(?!(?:.*\\/)?\\.{1,2}(?:\\/|$))(?:\\*\\*|(?:(?!\\*\\*)[^/\\\\\\u0000])+)(?:/(?:\\*\\*|(?:(?!\\*\\*)[^/\\\\\\u0000])+))*$';
-export const SCOPE_TIMESTAMP_PATTERN = '^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?(?:Z|[+-]\\d{2}:\\d{2})$';
+export const SCOPE_TIMESTAMP_PATTERN = '^\\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\\d|3[01])T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{3})?(?:Z|[+-](?:(?:0\\d|1[0-3]):[0-5]\\d|14:00))$';
 const SCOPE_STRING_RE = new RegExp(SCOPE_STRING_PATTERN, 'u');
 const SCOPE_PATH_RE = new RegExp(SCOPE_PATH_PATTERN, 'u');
 const SCOPE_TIMESTAMP_RE = new RegExp(SCOPE_TIMESTAMP_PATTERN, 'u');
@@ -68,9 +68,26 @@ function normalizePatterns(value, label, options) {
 
 function parseIso(value, label) {
   requireString(value, label);
-  const millis = Date.parse(value);
-  if (!SCOPE_TIMESTAMP_RE.test(value) || !Number.isFinite(millis)) throw new TypeError(`${label} must be a canonical ISO-8601 UTC/offset timestamp`);
-  return millis;
+  if (!SCOPE_TIMESTAMP_RE.test(value)) throw new TypeError(`${label} must be a canonical ISO-8601 UTC/offset timestamp`);
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?(Z|([+-])(\d{2}):(\d{2}))$/.exec(value);
+  const [, yearText, monthText, dayText, hourText, minuteText, secondText, millisText = '000', , offsetSign, offsetHourText = '00', offsetMinuteText = '00'] = match;
+  const [year, month, day, hour, minute, second, milliseconds, offsetHour, offsetMinute] = [yearText, monthText, dayText, hourText, minuteText, secondText, millisText, offsetHourText, offsetMinuteText].map(Number);
+  const wallClock = new Date(0);
+  wallClock.setUTCFullYear(year, month - 1, day);
+  wallClock.setUTCHours(hour, minute, second, milliseconds);
+  if (wallClock.getUTCFullYear() !== year || wallClock.getUTCMonth() !== month - 1 || wallClock.getUTCDate() !== day || wallClock.getUTCHours() !== hour || wallClock.getUTCMinutes() !== minute || wallClock.getUTCSeconds() !== second || wallClock.getUTCMilliseconds() !== milliseconds) {
+    throw new TypeError(`${label} contains an impossible calendar date or time`);
+  }
+  const offsetDirection = offsetSign === '+' ? 1 : offsetSign === '-' ? -1 : 0;
+  const instant = wallClock.getTime() - offsetDirection * (offsetHour * 60 + offsetMinute) * 60_000;
+  if (!Number.isFinite(instant)) throw new TypeError(`${label} is outside the supported timestamp range`);
+  return instant;
+}
+
+function selectTimestamp(values, direction) {
+  const candidates = values.map((value) => ({ value, instant: parseIso(value, 'scope timestamp') }));
+  candidates.sort((left, right) => left.instant - right.instant || (left.value < right.value ? -1 : left.value > right.value ? 1 : 0));
+  return direction === 'max' ? candidates.at(-1).value : candidates[0].value;
 }
 
 function deepFreeze(value) {
@@ -184,9 +201,9 @@ export function intersectScopes(inputs) {
     effective.parameter_bounds[name] = { min, max };
   }
   effective.budgets = Object.fromEntries(BUDGET_FIELDS.map((field) => [field, Math.min(...contracts.map((contract) => contract.budgets[field]))]));
-  effective.valid_from = contracts.map((contract) => contract.valid_from).sort().at(-1);
-  effective.valid_until = contracts.map((contract) => contract.valid_until).sort()[0];
-  if (Date.parse(effective.valid_from) >= Date.parse(effective.valid_until)) return deny('empty validity intersection', ['valid_from', 'valid_until']);
+  effective.valid_from = selectTimestamp(contracts.map((contract) => contract.valid_from), 'max');
+  effective.valid_until = selectTimestamp(contracts.map((contract) => contract.valid_until), 'min');
+  if (parseIso(effective.valid_from, 'scope valid_from') >= parseIso(effective.valid_until, 'scope valid_until')) return deny('empty validity intersection', ['valid_from', 'valid_until']);
   effective.max_occurrences = Math.min(...contracts.map((contract) => contract.max_occurrences));
   effective.externality = contracts.some((contract) => contract.externality === 'external') ? 'external' : 'internal';
   effective.reversibility = contracts.some((contract) => contract.reversibility === 'irreversible') ? 'irreversible' : contracts.some((contract) => contract.reversibility === 'partially-reversible') ? 'partially-reversible' : 'reversible';
