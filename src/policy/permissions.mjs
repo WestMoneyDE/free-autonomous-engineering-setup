@@ -3,6 +3,7 @@
 // adapters (adapters/claude, DSH plugin config, future harnesses) translate
 // it into their own hook formats. Policy is enforced in code, not prompts.
 import path from 'node:path';
+import { evaluateScopeRequest } from './scope-engine.mjs';
 
 export const SENSITIVE_PATH_PATTERNS = Object.freeze([
   /(^|\/)\.env($|\.|\/)/i,
@@ -52,7 +53,7 @@ export function classifyWritePath(root, targetPath) {
   if (resolved !== resolvedRoot && !resolved.startsWith(resolvedRoot + path.sep)) {
     return { decision: 'deny', reason: `path traversal outside repository root: ${targetPath}` };
   }
-  const rel = path.relative(resolvedRoot, resolved) || '.';
+  const rel = (path.relative(resolvedRoot, resolved) || '.').replaceAll(path.sep, '/');
   // .env.example is the one intentional exception (committed template).
   if (/(^|\/)\.env\.example$/.test(rel)) return { decision: 'allow', reason: 'env example template' };
   for (const p of SENSITIVE_PATH_PATTERNS) {
@@ -71,6 +72,16 @@ export function classifyCommand(command) {
   for (const p of ASK_COMMANDS) if (p.test(c)) return { decision: 'ask', reason: `externally visible / hard to reverse: ${p}` };
   for (const p of ALLOW_COMMANDS) if (p.test(c)) return { decision: 'allow', reason: 'routine local reversible operation' };
   return { decision: 'ask', reason: 'unclassified command defaults to ask (fail closed)' };
+}
+
+export function classifyScopedOperation({ root, path: requestedPath, command, scopeDecision, request }) {
+  const checked = evaluateScopeRequest(scopeDecision, request);
+  if (checked.verdict === 'DENY' || checked.verdict === 'DEFER') {
+    return { decision: 'deny', reason: `scope denied: ${(checked.reasons ?? ['unresolved scope']).join('; ')}` };
+  }
+  const pathDecision = classifyWritePath(root, requestedPath);
+  if (pathDecision.decision !== 'allow') return pathDecision;
+  return classifyCommand(command);
 }
 
 /** Scan text for credential-looking content before it leaves the boundary. */

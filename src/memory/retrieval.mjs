@@ -4,13 +4,22 @@
 // failure — an empty result is returned as explicitly empty, never invented.
 const BM25_K1 = 1.5;
 const BM25_B = 0.75;
+import { validateScopeDecisionRuntime } from '../policy/scope-engine.mjs';
 
 function tokenize(text) {
   return text.toLowerCase().split(/[^a-z0-9äöüß]+/).filter((t) => t.length > 1);
 }
 
-export function bm25Query(records, query, { limit = 10, includeRevoked = true } = {}) {
+export function bm25Query(records, query, { limit = 10, includeRevoked = true, scopeDecision } = {}) {
+  try {
+    validateScopeDecisionRuntime(scopeDecision);
+    if (!['ALLOW', 'NARROW'].includes(scopeDecision.verdict) || !scopeDecision.effective) return { ok: false, results: [], note: 'scope denied' };
+  } catch {
+    return { ok: false, results: [], note: 'scope denied' };
+  }
+  const audiences = new Set(scopeDecision.effective.audiences);
   const docs = records
+    .filter((r) => Array.isArray(r.visibility) && r.visibility.some((audience) => audiences.has(audience)))
     .filter((r) => !r.deleted)
     .map((r) => ({ record: r, tokens: tokenize(r.content) }));
   if (docs.length === 0) return { ok: true, results: [], note: 'empty store' };
