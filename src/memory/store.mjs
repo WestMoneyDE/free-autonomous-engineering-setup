@@ -251,23 +251,46 @@ export class MemoryStore {
    * voided. This is the SkillJack countermeasure:
    *   TransientAuthority -/-> PersistentAuthority.
    */
-  revokeSourceAuthority(sourceId, reason) {
+  descendantClosure(sourceId) {
+    if (!this.records.has(sourceId)) throw new Error(`cannot inspect unknown record ${sourceId}`);
+    const ids = [];
+    const seen = new Set();
+    const visit = (id) => {
+      if (seen.has(id)) return;
+      seen.add(id);
+      ids.push(id);
+      for (const record of this.records.values()) {
+        if ((record.lineage?.derived_from ?? []).includes(id)) visit(record.id);
+      }
+    };
+    visit(sourceId);
+    return ids;
+  }
+
+  revokeSourceAuthority(sourceId, reason, { expectedIds, validateRecord } = {}) {
     const src = this.records.get(sourceId);
     if (!src) throw new Error(`cannot revoke unknown record ${sourceId}`);
+    const closure = this.descendantClosure(sourceId);
+    if (expectedIds !== undefined) {
+      if (!Array.isArray(expectedIds) || expectedIds.length !== closure.length ||
+          [...expectedIds].sort().some((id, index) => id !== [...closure].sort()[index])) {
+        throw new Error('revocation closure changed; refusing partial mutation');
+      }
+    }
+    if (validateRecord !== undefined) {
+      if (typeof validateRecord !== 'function') throw new TypeError('revocation record validator must be a function');
+      for (const id of closure) validateRecord(this.#qualify(this.records.get(id)));
+    }
     const affected = [];
-    const visit = (id) => {
+    src.revoked = true;
+    for (const id of closure) {
       const rec = this.records.get(id);
-      if (!rec || rec.authority_revoked) return;
+      if (rec.authority_revoked) continue;
       rec.authority_revoked = true;
       rec.authority = { class: 'none', admissible_uses: [] };
       this.#persist(rec);
       affected.push(id);
-      for (const r of this.records.values()) {
-        if ((r.lineage?.derived_from ?? []).includes(id)) visit(r.id);
-      }
-    };
-    src.revoked = true;
-    visit(sourceId);
+    }
     this.append({
       ...(src.project ? { project: src.project } : {}),
       kind: 'episodic',

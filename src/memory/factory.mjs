@@ -68,7 +68,21 @@ export class MemoryFactory {
     });
   }
 
-  revokeAuthority(sourceId, reason) { return this.store.revokeSourceAuthority(sourceId, reason); }
+  revokeAuthority(sourceId, reason) {
+    const source = this.store.fetch(sourceId);
+    if (!source) throw new Error(`revocation source missing: ${sourceId}`);
+    this.#validateFactorySource(source);
+    const expectedIds = this.store.descendantClosure(sourceId);
+    for (const id of expectedIds) {
+      const record = this.store.fetch(id);
+      if (!record) throw new Error(`revocation descendant missing: ${id}`);
+      this.#validateFactorySource(record);
+    }
+    return this.store.revokeSourceAuthority(sourceId, reason, {
+      expectedIds,
+      validateRecord: (record) => this.#validateFactorySource(record),
+    });
+  }
   project(args) {
     let scopeDecision;
     try {

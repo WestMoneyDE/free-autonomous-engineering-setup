@@ -62,6 +62,26 @@ test('derived procedures retain lineage, weakest authority, and transitive revoc
   assert.equal(store.fetch(child.id).authority_revoked, true);
 });
 
+test('revocation rejects an outside-project source without mutation', () => {
+  const store = new MemoryStore(tmp());
+  const factory = new MemoryFactory(store, { project: 'p' });
+  const outside = store.append(base({ id: 'outside', project: 'other' }));
+  const before = store.fetch(outside.id);
+  assert.throws(() => factory.revokeAuthority(outside.id, 'withdrawn'), /project/);
+  assert.deepEqual(store.fetch(outside.id), before);
+});
+
+test('revocation rejects a mixed-project descendant closure atomically', () => {
+  const store = new MemoryStore(tmp());
+  const factory = new MemoryFactory(store, { project: 'p' });
+  const sourceRecord = factory.ingest(base({ id: 'source' }));
+  const child = factory.deriveProcedure({ source_ids: [sourceRecord.id], content: 'child' }, ['one']);
+  const outside = store.append(base({ id: 'outside-child', project: 'other', kind: 'procedural', content: 'outside', steps: ['two'], lineage: { derived_from: [child.id], conflicts_with: [] } }));
+  const before = new Map([sourceRecord.id, child.id, outside.id].map((id) => [id, store.fetch(id)]));
+  assert.throws(() => factory.revokeAuthority(sourceRecord.id, 'withdrawn'), /project/);
+  for (const [id, record] of before) assert.deepEqual(store.fetch(id), record, id);
+});
+
 test('consolidation preserves the exact ordered source-version set', () => {
   const factory = new MemoryFactory(new MemoryStore(tmp()), { project: 'p' });
   const a = factory.ingest(base({ id: 'a', source_provenance: provenance('policy@2') }));
