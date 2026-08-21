@@ -208,6 +208,8 @@ export class MemoryStore {
       content: summaryContent,
       source_provenance: {
         source: 'consolidation',
+        source_version: 'memory-consolidation@1',
+        source_versions: [...new Set(opts.sourceVersions ?? sources.map((r) => r.source_provenance.source_version).filter(Boolean))].sort(),
         kind: 'repository',
         recorded_at: new Date().toISOString(),
         ref: ids.join(','),
@@ -215,6 +217,7 @@ export class MemoryStore {
       authority: { class: anySourceRevoked ? 'none' : weakest, admissible_uses: anySourceRevoked ? [] : [...intersectUses] },
       confidence,
       retention: opts.retention ?? 'project',
+      visibility: opts.visibility ?? sources.map((r) => r.visibility ?? ['project']).reduce((acc, current) => acc.filter((item) => current.includes(item))),
       lineage: { derived_from: ids, conflicts_with: conflicts },
     });
     if (anySourceRevoked) {
@@ -230,8 +233,8 @@ export class MemoryStore {
    * Derive a reusable procedure ("skill") from source records.
    * Lineage is mandatory; authority is capped at the weakest source.
    */
-  deriveProcedure(sourceIds, { content, steps, retention = 'project' }) {
-    const derived = this.consolidate(sourceIds, content, { kind: 'procedural', retention });
+  deriveProcedure(sourceIds, { content, steps, retention = 'project', visibility, sourceVersions }) {
+    const derived = this.consolidate(sourceIds, content, { kind: 'procedural', retention, visibility, sourceVersions });
     const stored = this.records.get(derived.id);
     stored.steps = steps;
     validateProcedureRecord(stored);

@@ -56,6 +56,7 @@ export function bm25Query(records, query, { limit = 10, includeRevoked = true, s
       source_provenance: s.record.source_provenance,
       authority: s.record.authority,
       confidence: s.record.confidence,
+      visibility: s.record.visibility,
       qualifiers: s.record.qualifiers,
     })),
   };
