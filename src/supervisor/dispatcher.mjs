@@ -8,6 +8,8 @@ import { workOrderHash } from '../evidence/hashing.mjs';
 import { validateWorkOrder } from '../schemas/schemas.mjs';
 import { validateScopeDecisionRuntime } from '../policy/scope-engine.mjs';
 
+const WORKER_SCOPE_ROLES = Object.freeze({ builder: 'builder', reviewer: 'reviewer' });
+
 export class DispatchError extends Error {
   constructor(message, code) {
     super(message);
@@ -33,6 +35,9 @@ export class Dispatcher {
     try {
       validateScopeDecisionRuntime(scopeDecision);
       if (!['ALLOW', 'NARROW'].includes(scopeDecision.verdict) || !scopeDecision.effective) throw new TypeError('effective scope is missing or denied');
+      if (scopeDecision.effective.project !== project) throw new TypeError('effective scope project does not match dispatch project');
+      const requiredRole = WORKER_SCOPE_ROLES[workerClass];
+      if (!requiredRole || !scopeDecision.effective.roles.includes(requiredRole)) throw new TypeError('worker class is outside effective scope roles');
     } catch {
       throw new DispatchError('effective scope is missing or denied', 'SCOPE_INVALID');
     }

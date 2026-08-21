@@ -74,12 +74,24 @@ export function classifyCommand(command) {
   return { decision: 'ask', reason: 'unclassified command defaults to ask (fail closed)' };
 }
 
+function canonicalRepoPath(root, targetPath) {
+  const resolvedRoot = path.resolve(root);
+  const resolved = path.resolve(resolvedRoot, targetPath.replaceAll('\\', '/'));
+  if (resolved !== resolvedRoot && !resolved.startsWith(resolvedRoot + path.sep)) return null;
+  return (path.relative(resolvedRoot, resolved) || '.').replaceAll(path.sep, '/');
+}
+
 export function classifyScopedOperation({ root, path: requestedPath, command, scopeDecision, request }) {
   const checked = evaluateScopeRequest(scopeDecision, request);
   if (checked.verdict === 'DENY' || checked.verdict === 'DEFER') {
     return { decision: 'deny', reason: `scope denied: ${(checked.reasons ?? ['unresolved scope']).join('; ')}` };
   }
-  const pathDecision = classifyWritePath(root, requestedPath);
+  const scopedPath = canonicalRepoPath(root, request.path);
+  const suppliedPath = canonicalRepoPath(root, requestedPath);
+  if (scopedPath === null || suppliedPath === null || scopedPath !== suppliedPath) {
+    return { decision: 'deny', reason: 'scope denied: path mismatch between scoped request and classified operation' };
+  }
+  const pathDecision = classifyWritePath(root, scopedPath);
   if (pathDecision.decision !== 'allow') return pathDecision;
   return classifyCommand(command);
 }
