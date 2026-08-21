@@ -1252,6 +1252,10 @@
     "ScopeContract": {
       "type": "object",
       "additionalProperties": false,
+      "x-runtime-invariants": [
+        "parameter_bounds.min<=max",
+        "valid_from<valid_until"
+      ],
       "required": [
         "project",
         "include_paths",
@@ -1275,14 +1279,15 @@
       "properties": {
         "project": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "pattern": "^(?!\\s)(?:[^\\r\\n]*\\S)$"
         },
         "include_paths": {
           "type": "array",
           "items": {
             "type": "string",
             "minLength": 1,
-            "pattern": "^(?!/|[A-Za-z]:|.*(?:^|/)\\.\\.?($|/)|.*\\\\).+$"
+            "pattern": "^(?![A-Za-z]:)(?!(?:.*\\/)?\\.{1,2}(?:\\/|$))(?:\\*\\*|(?:(?!\\*\\*)[^/\\\\\\u0000])+)(?:/(?:\\*\\*|(?:(?!\\*\\*)[^/\\\\\\u0000])+))*$"
           },
           "minItems": 1
         },
@@ -1291,14 +1296,23 @@
           "items": {
             "type": "string",
             "minLength": 1,
-            "pattern": "^(?!/|[A-Za-z]:|.*(?:^|/)\\.\\.?($|/)|.*\\\\).+$"
+            "pattern": "^(?![A-Za-z]:)(?!(?:.*\\/)?\\.{1,2}(?:\\/|$))(?:\\*\\*|(?:(?!\\*\\*)[^/\\\\\\u0000])+)(?:/(?:\\*\\*|(?:(?!\\*\\*)[^/\\\\\\u0000])+))*$"
           }
         },
         "roles": {
           "type": "array",
           "items": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "pattern": "^(?!\\s)(?:[^\\r\\n]*\\S)$",
+            "enum": [
+              "planner",
+              "builder",
+              "reviewer",
+              "security-reviewer",
+              "supervisor",
+              "human"
+            ]
           },
           "minItems": 1
         },
@@ -1306,7 +1320,8 @@
           "type": "array",
           "items": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "pattern": "^(?!\\s)(?:[^\\r\\n]*\\S)$"
           },
           "minItems": 1
         },
@@ -1314,7 +1329,15 @@
           "type": "array",
           "items": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "pattern": "^(?!\\s)(?:[^\\r\\n]*\\S)$",
+            "enum": [
+              "working",
+              "episodic",
+              "semantic",
+              "procedural",
+              "evidence-ref"
+            ]
           },
           "minItems": 1
         },
@@ -1322,7 +1345,8 @@
           "type": "array",
           "items": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "pattern": "^(?!\\s)(?:[^\\r\\n]*\\S)$"
           },
           "minItems": 1
         },
@@ -1330,7 +1354,8 @@
           "type": "array",
           "items": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "pattern": "^(?!\\s)(?:[^\\r\\n]*\\S)$"
           },
           "minItems": 1
         },
@@ -1338,12 +1363,18 @@
           "type": "array",
           "items": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "pattern": "^(?!\\s)(?:[^\\r\\n]*\\S)$"
           },
           "minItems": 1
         },
         "parameter_bounds": {
           "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?!\\s)(?:[^\\r\\n]*\\S)$"
+          },
           "additionalProperties": {
             "type": "object",
             "additionalProperties": false,
@@ -1391,11 +1422,13 @@
         },
         "valid_from": {
           "type": "string",
-          "format": "date-time"
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?(?:Z|[+-]\\d{2}:\\d{2})$"
         },
         "valid_until": {
           "type": "string",
-          "format": "date-time"
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?(?:Z|[+-]\\d{2}:\\d{2})$"
         },
         "max_occurrences": {
           "type": "integer",
@@ -1421,7 +1454,8 @@
           "type": "array",
           "items": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "pattern": "^(?!\\s)(?:[^\\r\\n]*\\S)$"
           },
           "minItems": 1
         },
@@ -1429,7 +1463,13 @@
           "type": "array",
           "items": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "pattern": "^(?!\\s)(?:[^\\r\\n]*\\S)$",
+            "enum": [
+              "session",
+              "project",
+              "permanent"
+            ]
           },
           "minItems": 1
         },
@@ -1437,7 +1477,8 @@
           "type": "array",
           "items": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "pattern": "^(?!\\s)(?:[^\\r\\n]*\\S)$"
           }
         }
       }
@@ -1445,6 +1486,10 @@
     "ScopeDecision": {
       "type": "object",
       "additionalProperties": false,
+      "x-runtime-invariants": [
+        "digest=sha256(canonicalJson(effective))",
+        "null-effective-digest=sha256(canonicalJson(null))"
+      ],
       "required": [
         "verdict",
         "effective",
@@ -1479,14 +1524,24 @@
           "type": "array",
           "items": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "pattern": "^(?!\\s)(?:[^\\r\\n]*\\S)$"
           }
         },
         "unresolved_dimensions": {
           "type": "array",
           "items": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "pattern": "^(?!\\s)(?:[^\\r\\n]*\\S)$"
+          }
+        },
+        "violations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?!\\s)(?:[^\\r\\n]*\\S)$"
           }
         }
       },
@@ -1529,7 +1584,8 @@
               "verdict": {
                 "enum": [
                   "ALLOW",
-                  "NARROW"
+                  "NARROW",
+                  "DENY"
                 ]
               }
             }

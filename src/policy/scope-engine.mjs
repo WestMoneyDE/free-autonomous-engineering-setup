@@ -15,7 +15,16 @@ const BUDGET_FIELDS = Object.freeze(['cost_usd', 'tokens', 'seconds', 'attempts'
 const EXTERNALITIES = Object.freeze(['internal', 'external']);
 const REVERSIBILITIES = Object.freeze(['reversible', 'partially-reversible', 'irreversible']);
 const VERDICTS = Object.freeze(['ALLOW', 'NARROW', 'DEFER', 'DENY']);
+export const SCOPE_ROLES = Object.freeze(['planner', 'builder', 'reviewer', 'security-reviewer', 'supervisor', 'human']);
+export const SCOPE_MEMORY_KINDS = Object.freeze(['working', 'episodic', 'semantic', 'procedural', 'evidence-ref']);
+export const SCOPE_RETENTION_CLASSES = Object.freeze(['session', 'project', 'permanent']);
 const DIGEST_RE = /^[0-9a-f]{64}$/;
+export const SCOPE_STRING_PATTERN = '^(?!\\s)(?:[^\\r\\n]*\\S)$';
+export const SCOPE_PATH_PATTERN = '^(?![A-Za-z]:)(?!(?:.*\\/)?\\.{1,2}(?:\\/|$))(?:\\*\\*|(?:(?!\\*\\*)[^/\\\\\\u0000])+)(?:/(?:\\*\\*|(?:(?!\\*\\*)[^/\\\\\\u0000])+))*$';
+export const SCOPE_TIMESTAMP_PATTERN = '^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?(?:Z|[+-]\\d{2}:\\d{2})$';
+const SCOPE_STRING_RE = new RegExp(SCOPE_STRING_PATTERN, 'u');
+const SCOPE_PATH_RE = new RegExp(SCOPE_PATH_PATTERN, 'u');
+const SCOPE_TIMESTAMP_RE = new RegExp(SCOPE_TIMESTAMP_PATTERN, 'u');
 
 const isPlainObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value) && Object.getPrototypeOf(value) === Object.prototype;
 const sortedUnique = (values) => [...new Set(values)].sort();
@@ -32,7 +41,7 @@ function requireExactFields(value, fields, label) {
 }
 
 function requireString(value, label) {
-  if (typeof value !== 'string' || value.length === 0 || value.trim() !== value) throw new TypeError(`${label} must be a non-empty trimmed string`);
+  if (typeof value !== 'string' || !SCOPE_STRING_RE.test(value)) throw new TypeError(`${label} must be a non-empty trimmed single-line string`);
   return value;
 }
 
@@ -42,12 +51,14 @@ function normalizeStringSet(value, label, { allowEmpty = false } = {}) {
   return sortedUnique(value);
 }
 
+function requireEnumSet(values, allowed, label) {
+  const invalid = values.find((value) => !allowed.includes(value));
+  if (invalid !== undefined) throw new TypeError(`${label} contains unsupported value: ${invalid}`);
+}
+
 function normalizeRepoPattern(value, label) {
   requireString(value, label);
-  if (value.includes('\\') || path.posix.isAbsolute(value) || /^[A-Za-z]:/.test(value) || value.includes('\0')) throw new TypeError(`${label} must be a repository-relative POSIX path pattern`);
-  const segments = value.split('/');
-  if (segments.some((part) => part === '' || part === '.' || part === '..')) throw new TypeError(`${label} must not contain empty, dot, or parent segments`);
-  if (segments.some((part) => part.includes('**') && part !== '**')) throw new TypeError(`${label} has an invalid globstar segment`);
+  if (!SCOPE_PATH_RE.test(value)) throw new TypeError(`${label} must be a safe repository-relative POSIX path pattern with globstar only as a complete segment`);
   return value;
 }
 
@@ -58,7 +69,7 @@ function normalizePatterns(value, label, options) {
 function parseIso(value, label) {
   requireString(value, label);
   const millis = Date.parse(value);
-  if (!Number.isFinite(millis) || new Date(millis).toISOString() !== value) throw new TypeError(`${label} must be a canonical ISO-8601 timestamp`);
+  if (!SCOPE_TIMESTAMP_RE.test(value) || !Number.isFinite(millis)) throw new TypeError(`${label} must be a canonical ISO-8601 UTC/offset timestamp`);
   return millis;
 }
 
@@ -79,6 +90,9 @@ export function normalizeScopeContract(raw) {
   requireExactFields(raw, CONTRACT_FIELDS, 'scope contract');
   const normalized = { project: requireString(raw.project, 'scope project') };
   for (const field of SET_FIELDS) normalized[field] = normalizeStringSet(raw[field], `scope ${field}`);
+  requireEnumSet(normalized.roles, SCOPE_ROLES, 'scope roles');
+  requireEnumSet(normalized.memory_kinds, SCOPE_MEMORY_KINDS, 'scope memory_kinds');
+  requireEnumSet(normalized.retention_classes, SCOPE_RETENTION_CLASSES, 'scope retention_classes');
   normalized.include_paths = normalizePatterns(raw.include_paths, 'scope include_paths');
   normalized.exclude_paths = normalizePatterns(raw.exclude_paths ?? [], 'scope exclude_paths', { allowEmpty: true });
 
@@ -121,6 +135,23 @@ export function normalizeScopeContract(raw) {
 }
 
 export const scopeDigest = (scope) => sha256Hex(canonicalJson(scope));
+
+export function validateScopeDecisionRuntime(decision) {
+  requirePlainObject(decision, 'scope decision');
+  requireExactFields(decision, new Set(['verdict', 'effective', 'digest', 'reasons', 'unresolved_dimensions', 'violations']), 'scope decision');
+  if (!VERDICTS.includes(decision.verdict) || !DIGEST_RE.test(decision.digest)) throw new TypeError('scope decision verdict or digest is invalid');
+  normalizeStringSet(decision.reasons, 'scope decision reasons', { allowEmpty: true });
+  normalizeStringSet(decision.unresolved_dimensions, 'scope decision unresolved_dimensions', { allowEmpty: true });
+  if (decision.violations !== undefined) normalizeStringSet(decision.violations, 'scope decision violations', { allowEmpty: true });
+  if (decision.effective === null) {
+    if (!['DENY', 'DEFER'].includes(decision.verdict) || decision.digest !== scopeDigest(null)) throw new TypeError('scope decision is inconsistent');
+    return decision;
+  }
+  if (!['ALLOW', 'NARROW', 'DENY'].includes(decision.verdict)) throw new TypeError('scope decision is inconsistent');
+  const effective = normalizeScopeContract(decision.effective);
+  if (decision.digest !== scopeDigest(effective)) throw new TypeError('scope decision digest mismatch');
+  return decision;
+}
 
 export function intersectScopes(inputs) {
   if (!Array.isArray(inputs) || inputs.length === 0) return deepFreeze({ verdict: 'DEFER', effective: null, digest: scopeDigest(null), reasons: ['no scope contracts'], unresolved_dimensions: ['all'] });
@@ -189,16 +220,11 @@ function normalizeRequestPath(value) {
 
 export function evaluateScopeRequest(decision, request) {
   try {
-    requirePlainObject(decision, 'scope decision');
-    requireExactFields(decision, new Set(['verdict', 'effective', 'digest', 'reasons', 'unresolved_dimensions']), 'scope decision');
-    if (!VERDICTS.includes(decision.verdict) || !DIGEST_RE.test(decision.digest) || !Array.isArray(decision.reasons) || !Array.isArray(decision.unresolved_dimensions)) throw new TypeError('scope decision shape is invalid');
+    validateScopeDecisionRuntime(decision);
     if (decision.effective === null) {
-      if (!['DENY', 'DEFER'].includes(decision.verdict) || decision.digest !== scopeDigest(null)) throw new TypeError('scope decision is inconsistent');
       return decision;
     }
-    if (!['ALLOW', 'NARROW'].includes(decision.verdict)) throw new TypeError('scope decision is inconsistent');
     const effective = normalizeScopeContract(decision.effective);
-    if (decision.digest !== scopeDigest(effective)) throw new TypeError('scope decision digest mismatch');
     requirePlainObject(request, 'scope request');
     requireExactFields(request, REQUEST_FIELDS, 'scope request');
     for (const field of REQUEST_FIELDS) requireString(request[field], `scope request ${field}`);

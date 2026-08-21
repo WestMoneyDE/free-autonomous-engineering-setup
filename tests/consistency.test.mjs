@@ -52,6 +52,29 @@ test('exported JSON Schema includes scope runtime enums and records', () => {
   assert.ok(schema.$defs.ScopeDecision);
 });
 
+test('scope schema expressible constraints reject the same adversarial values as runtime', () => {
+  const schema = buildSchemaDocument().$defs.ScopeContract;
+  const pathPattern = new RegExp(schema.properties.include_paths.items.pattern, 'u');
+  const timestampPattern = new RegExp(schema.properties.valid_from.pattern, 'u');
+  const trimmedPattern = new RegExp(schema.properties.project.pattern, 'u');
+  assert.equal(pathPattern.test('src/**x'), false);
+  assert.equal(pathPattern.test('../src/**'), false);
+  assert.equal(timestampPattern.test('2026-08-21 00:00:00Z'), false);
+  assert.equal(timestampPattern.test('2026-08-21T01:00:00+01:00'), true);
+  assert.equal(trimmedPattern.test(' project'), false);
+  assert.equal(trimmedPattern.test('project '), false);
+  assert.ok(schema.properties.roles.items.enum.includes('builder'));
+  assert.ok(!schema.properties.roles.items.enum.includes('invented-role'));
+  assert.ok(schema.properties.memory_kinds.items.enum.includes('semantic'));
+  assert.ok(schema.properties.retention_classes.items.enum.includes('project'));
+});
+
+test('scope schema names runtime-only cross-field invariants', () => {
+  const annotations = buildSchemaDocument().$defs.ScopeContract['x-runtime-invariants'];
+  assert.deepEqual(annotations, ['parameter_bounds.min<=max', 'valid_from<valid_until']);
+  assert.deepEqual(buildSchemaDocument().$defs.ScopeDecision['x-runtime-invariants'], ['digest=sha256(canonicalJson(effective))', 'null-effective-digest=sha256(canonicalJson(null))']);
+});
+
 test('CAPABILITIES.md exists, uses the closed status vocabulary, and never rates above evidence', () => {
   const text = read('CAPABILITIES.md');
   const rows = text.split('\n').filter((l) => l.startsWith('|') && !l.startsWith('|---') && !l.includes('Capability |'));

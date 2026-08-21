@@ -47,6 +47,12 @@ test('worker request cannot widen effective scope', () => {
 test('normalization validates every field and rejects unknown fields', () => {
   assert.throws(() => normalizeScopeContract(contract({ surprise: true })), /unknown field/);
   assert.throws(() => normalizeScopeContract(contract({ include_paths: ['../outside/**'] })), /include_paths/);
+  assert.throws(() => normalizeScopeContract(contract({ include_paths: ['src/**x'] })), /include_paths/);
+  assert.throws(() => normalizeScopeContract(contract({ project: ' demo' })), /project/);
+  assert.throws(() => normalizeScopeContract(contract({ roles: ['invented-role'] })), /roles/);
+  assert.throws(() => normalizeScopeContract(contract({ memory_kinds: ['authority-grant'] })), /memory_kinds/);
+  assert.throws(() => normalizeScopeContract(contract({ retention_classes: ['forever-ish'] })), /retention_classes/);
+  assert.throws(() => normalizeScopeContract(contract({ parameter_bounds: { files: { min: 2, max: 1 } } })), /min <= max/);
   assert.throws(() => normalizeScopeContract(contract({ budgets: { cost_usd: -1, tokens: 1, seconds: 1, attempts: 1 } })), /cost_usd/);
   assert.throws(() => normalizeScopeContract(contract({ valid_from: 'today' })), /valid_from/);
   assert.throws(() => normalizeScopeContract(contract({ externality: 'maybe' })), /externality/);
@@ -64,4 +70,27 @@ test('request validation enforces path inclusion/exclusion and request shape', (
   assert.equal(evaluateScopeRequest(decision, { role: 'builder', tool: 'read', memory_kind: 'semantic', capability: 'local-edit', target: 'repository', path: 'docs/x.md' }).verdict, 'DENY');
   assert.equal(evaluateScopeRequest(decision, { role: 'builder', tool: 'read', memory_kind: 'semantic', capability: 'local-edit', target: 'repository', path: '.state/assurance/x.json' }).verdict, 'DENY');
   assert.equal(evaluateScopeRequest(decision, { role: 'builder', tool: 'read', memory_kind: 'semantic', capability: 'local-edit', target: 'repository', path: 'src/x.mjs', extra: true }).verdict, 'DENY');
+});
+
+test('malformed decision metadata is replaced by a fail-closed diagnostic', () => {
+  const request = { role: 'builder', tool: 'read', memory_kind: 'semantic', capability: 'local-edit', target: 'repository', path: 'src/x.mjs' };
+  for (const decision of [
+    { verdict: 'DENY', effective: null, digest: scopeDigest(null), reasons: [' '], unresolved_dimensions: ['all'] },
+    { verdict: 'DEFER', effective: null, digest: scopeDigest(null), reasons: [], unresolved_dimensions: [1] },
+    { ...intersectScopes([contract()]), reasons: ['ok'], unresolved_dimensions: [''] },
+    { ...intersectScopes([contract()]), violations: [' '] },
+  ]) {
+    const result = evaluateScopeRequest(decision, request);
+    assert.equal(result.verdict, 'DENY');
+    assert.equal(result.effective, null);
+    assert.deepEqual(result.unresolved_dimensions, ['all']);
+    assert.deepEqual(result.violations, ['validation']);
+    assert.match(result.reasons[0], /^invalid scope request or decision:/);
+    assert.notEqual(result, decision);
+  }
+});
+
+test('scope timestamps accept canonical UTC or offset forms and reject loose dates', () => {
+  assert.doesNotThrow(() => normalizeScopeContract(contract({ valid_from: '2026-08-21T01:00:00+01:00' })));
+  assert.throws(() => normalizeScopeContract(contract({ valid_from: '2026-08-21 00:00:00Z' })), /valid_from/);
 });
