@@ -1,5 +1,7 @@
 # Capability inventory
 
+Public identity: **Ömer Coskun**. Canonical lineage: **Autonomous Engineering Reference Architecture V1**.
+
 Status vocabulary (closed; enforced by `tests/consistency.test.mjs`):
 `OPERATIONAL` — runs end-to-end and is exercised in CI · `IMPLEMENTED` — code/config exists **and** is covered by tests · `SPECIFIED_ONLY` — documented/configured, no verified runtime behavior · `PLANNED` · `NOT_APPLICABLE` · `NOT_CLAIMED`.
 
@@ -29,7 +31,7 @@ Status vocabulary (closed; enforced by `tests/consistency.test.mjs`):
 | Structured schemas + runtime validators for all 19 record types + generated JSON Schema export | IMPLEMENTED | src/schemas/schemas.mjs + spec/schemas/records.schema.json | tests/schemas.test.mjs, tests/consistency.test.mjs | Runtime validation chosen over compile-time types at the trust boundary |
 | Skills lock v2: commit-SHA pins required, optional content hash, explicit MISSING_UPSTREAM handling | IMPLEMENTED | src/skills/lock.mjs + config/skills-lock.example.json | tests/skills.test.mjs | No third-party skill content vendored (license-clean) |
 | Strix review proposal contract: non-authoritative claim validation, exact effect-proposal digest binding and strict result interpretation | IMPLEMENTED | src/security/strix-review.mjs + effect registry metadata; no launcher/executor integration | tests/strix-review.test.mjs, tests/effect-gate.test.mjs | Preflight always returns `execution_authorized: false`; independent AssuranceStore/EffectGate approval remains required |
-| Project state bootstrap: dry-run default, never overwrites, idempotent | IMPLEMENTED | scripts/init-project.mjs | tests/installer.test.mjs | ai-engineering-stack installer discipline |
+| Safe canonical runtime installation: dry-run default, exclusive no-overwrite apply, source/version/SHA-256 manifest, traversal/symlink containment | IMPLEMENTED | scripts/init-project.mjs | tests/installer.test.mjs | Explicit allowlist excludes credentials, Strix executable/config secrets and authority writes |
 | End-to-end supervised loop, local and model-free (PLANNED→…→DONE with leases, review, recovery check) | OPERATIONAL | examples/demo-project/run-demo.mjs | `npm run demo` (executed in CI) | — |
 | Fresh-agent recovery from repository state alone | IMPLEMENTED | src/cli.mjs (`state`, `verify-recovery`) + examples/demo-project | tests/supervisor.test.mjs (replay==snapshot) | — |
 | Documentation/state-vocabulary consistency enforcement | IMPLEMENTED | tests/consistency.test.mjs | tests/consistency.test.mjs (self-executing) | Generalization of LOGOS-1 push protocol |

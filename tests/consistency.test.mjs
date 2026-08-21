@@ -133,3 +133,10 @@ test('R2-08: hero asset must not claim unimplemented features (capability contra
     assert.doesNotMatch(hero, re, `hero must not claim dynamic/unimplemented capability matching ${re}`);
   }
 });
+
+test('repository exposes the complete canonical runtime contract', () => {
+  for (const file of ['.agents/manifest.json', '.skills/security-review-with-strix/SKILL.md', '.commands/scope-check.md', '.claude/README.md']) assert.ok(fs.existsSync(path.join(root, file)));
+  const publicText = ['README.md', 'README.de.md', 'CAPABILITIES.md'].map(read).join('\n');
+  assert.match(publicText, /Ömer Coskun/);
+  assert.match(publicText, /Autonomous Engineering Reference (Architecture )?V1/);
+});

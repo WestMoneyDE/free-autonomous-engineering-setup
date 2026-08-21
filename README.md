@@ -1,5 +1,7 @@
 # Free Autonomous Engineering Setup
 
+Maintained by **Ömer Coskun**. Lineage name: **Autonomous Engineering Reference Architecture V1** (the public evolution of AI Engineering Stack).
+
 [Deutsch](README.de.md) · [Architecture](docs/ARCHITECTURE.md) · [Hermes Supervisor](docs/HERMES-SUPERVISOR.md) · [Installation](docs/INSTALLATION.md) · [Routing](docs/ROUTING.md) · [Security](docs/SECURITY-AND-AUTHORITY.md) · [Costs](docs/COSTS.md)
 
 ![Free Autonomous Engineering Setup architecture](assets/free-autonomous-engineering-setup-hero.svg)

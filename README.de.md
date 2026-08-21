@@ -1,5 +1,7 @@
 # Free Autonomous Engineering Setup
 
+Verantwortet von **Ömer Coskun**. Lineage-Name: **Autonomous Engineering Reference Architecture V1** (die öffentliche Weiterentwicklung des AI Engineering Stack).
+
 [English](README.md) · [Installation](docs/INSTALLATION.md) · [Architektur](docs/ARCHITECTURE.md) · [Routing](docs/ROUTING.md) · [Kosten](docs/COSTS.md)
 
 Dieses Repository baut eine **lokale, free-preferred Coding-Control-Plane** aus fünf klar getrennten Ebenen:
